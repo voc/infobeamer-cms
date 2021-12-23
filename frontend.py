@@ -103,7 +103,7 @@ def cached_asset_name(asset):
         dl = ib.get('asset/%d/download' % asset['id'])
         r = requests.get(dl['download_url'], stream=True, timeout=5)
         r.raise_for_status()
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             shutil.copyfileobj(r.raw, f)
             f.delete = False
             os.rename(f.name, cache_name)
@@ -278,11 +278,11 @@ def sync():
                 "color": "#dddddd"
             },
         })
-        #tiles.append({
-        #    "type": "image",
-        #    "asset": 828109, # 36c3 logo
-        #    "x1":10, "y1":1090-64, "x2":10+134, "y2":1090,
-        #})
+        tiles.append({
+            "type": "image",
+            "asset": 828107, # fairydust
+            "x1":10, "y1":1070-66, "x2":10+100, "y2":1070, # bottom left,  10px from border
+        })
         return tiles
 
     pages = []
