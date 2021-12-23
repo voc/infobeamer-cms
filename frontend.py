@@ -1,5 +1,6 @@
-import os, json, logging, iso8601, random, redis, cPickle
+import os, json, logging, iso8601, random, redis, pickle
 import requests, traceback, tempfile, shutil, hmac, time
+from secrets import token_hex
 from datetime import datetime
 from flask import (
     Flask, request, g, session, redirect, url_for,
@@ -7,7 +8,7 @@ from flask import (
 )
 from flask.sessions import SessionInterface
 from flask_github import GitHub
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 log = logging.getLogger('fe')
 logging.basicConfig()
@@ -33,6 +34,7 @@ class IBHosted(object):
 
     def post(self, ep, **data):
         r = self._session.post('https://info-beamer.com/api/v1/%s' % ep, data=data, timeout=5)
+        log.info(r.text)
         r.raise_for_status()
         return r.json()
 
@@ -113,7 +115,7 @@ def get_random(size=16):
     return ''.join('%02x' % random.getrandbits(8) for i in range(size))
 
 def mk_sig(value):
-    return hmac.new(app.config['URL_KEY'], str(value)).hexdigest()
+    return hmac.new(app.config['URL_KEY'], str(value).encode(), digestmod='sha256').hexdigest()
 
 def error(msg):
     return jsonify(error = msg), 400
@@ -135,14 +137,14 @@ class RedisSessionStore(SessionInterface):
         data = r.get('sid:%s' % sid)
         if data is None:
             return RedisSession()
-        return RedisSession(sid, cPickle.loads(data))
+        return RedisSession(sid, pickle.loads(data))
 
     def save_session(self, app, session, response):
         if not session.modified:
             return
         state = dict(session)
         if state:
-            r.setex('sid:%s' % session.sid, cPickle.dumps(state, 2), 86400)
+            r.setex('sid:%s' % session.sid, 86400, pickle.dumps(state, 2))
         else:
             r.delete('sid:%s' % session.sid)
         if session.new_sid:
@@ -272,15 +274,15 @@ def sync():
             "config": {
                 "font_size": 25,
                 "fade_time": 0.5,
-                "text": u"Project by @%s - visit https://36c3.info-beamer.org to share your own." % asset['userdata']['user'],
+                "text": u"Project by @%s - visit https://infobeamer-cms.c3voc.de to share your own." % asset['userdata']['user'],
                 "color": "#dddddd"
             },
         })
-        tiles.append({
-            "type": "image",
-            "asset": 92738, # 36c3 logo
-            "x1":10, "y1":1090-64, "x2":10+134, "y2":1090,
-        })
+        #tiles.append({
+        #    "type": "image",
+        #    "asset": 828109, # 36c3 logo
+        #    "x1":10, "y1":1090-64, "x2":10+134, "y2":1090,
+        #})
         return tiles
 
     pages = []
@@ -333,7 +335,7 @@ def content_upload():
     extension = 'jpg' if filetype == 'image' else 'mp4'
     filename = "user/%s/%s %s.%s" % (
         g.user, datetime.utcnow().strftime("%Y-%d-%m %H:%M:%S"),
-        os.urandom(16).encode('hex'), extension
+        token_hex(8), extension
     )
     condition = {
         "StringEquals": {
