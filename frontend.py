@@ -30,6 +30,7 @@ from flask import (
 )
 from flask.sessions import SessionInterface
 from flask_github import GitHub
+from toml import load as toml_load
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 basicConfig(
@@ -39,7 +40,7 @@ basicConfig(
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
-app.config.from_envvar("SETTINGS")
+app.config.from_file(os.environ["SETTINGS"], load=toml_load)
 
 socket.setdefaulttimeout(3)  # for mqtt
 
@@ -173,7 +174,7 @@ def get_random(size=16):
 def mk_sig(value):
     app.logger.debug(f'mk_sig("{value}")')
     return hmac.new(
-        app.config["URL_KEY"], str(value).encode(), digestmod="sha256"
+        app.config["URL_KEY"].encode(), str(value).encode(), digestmod="sha256"
     ).hexdigest()
 
 
