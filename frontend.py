@@ -288,15 +288,17 @@ def sync():
             "config": {
                 "font_size": 25,
                 "fade_time": 0.5,
-                "text": u"Project by @%s - visit https://infobeamer-cms.c3voc.de to share your own." % asset['userdata']['user'],
+                "text": u"Project by @{user} - visit {url} to share your own.".format(
+                    user=asset['userdata']['user'],
+                    url=url_for(
+                        'index',
+                        _external=True,
+                    ),
+                ),
                 "color": "#dddddd"
             },
         })
-        tiles.append({
-            "type": "image",
-            "asset": 828107, # fairydust
-            "x1":10, "y1":1070-66, "x2":10+100, "y2":1070, # bottom left,  10px from border
-        })
+        tiles.extend(APP_CONFIG['EXTRA_ASSETS'])
         return tiles
 
     pages = []

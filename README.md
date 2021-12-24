@@ -45,5 +45,5 @@ cp settings.example.cfg settings.cfg
 ln -s /service/cms /etc/service
 
 # Add this to crontab
-*/5 * * * * curl http://127.0.0.1:8000/sync
+*/5 * * * * curl -H "Host: 36c3.infobeamer.com" http://127.0.0.1:8000/sync
 ```
