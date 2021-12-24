@@ -258,8 +258,10 @@ const Index = Vue.component('index', {
         Upload FullHD JPG or 10s H264 video..
       </button>
       &nbsp;
-      Your project image/video <b>must</b> include a way to reach you at 36C3.
-      <a href='/faq'>Read the FAQ..</a>
+      The bottom 40 pixels of your content will be overlayed by a bar
+      showing your github username and will therefore not be visible.
+      Your project image/video <b>must</b> include a way to reach you 
+      during this event. <a href='/faq'>Read the FAQ..</a>
     </div>
   `,
   computed: {
