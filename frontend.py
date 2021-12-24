@@ -414,7 +414,7 @@ def content_request_review(asset_id):
         _external=True
     )
 
-    mqtt = mqtt.Client()
+    client = mqtt.Client()
     if app.config.get('MQTT_USERNAME') and app.config.get('MQTT_PASSWORD'):
         client.username_pw_set(app.config['MQTT_USERNAME'], app.config['MQTT_PASSWORD'])
     client.connect(app.config['MQTT_SERVER'])
