@@ -298,7 +298,7 @@ def sync():
                 "color": "#dddddd"
             },
         })
-        tiles.extend(APP_CONFIG['EXTRA_ASSETS'])
+        tiles.extend(app.config['EXTRA_ASSETS'])
         return tiles
 
     pages = []
