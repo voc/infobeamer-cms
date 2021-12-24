@@ -1,11 +1,23 @@
-import os, json, logging, iso8601, random, redis, pickle
-import requests, traceback, tempfile, shutil, hmac, time
-from secrets import token_hex
+import hmac
+import json
+import logging
+import os
+import pickle
+import random
+import shutil
+import socket
+import tempfile
+import time
+import traceback
 from datetime import datetime
-from flask import (
-    Flask, request, g, session, redirect, url_for,
-    jsonify, render_template, sessions, abort
-)
+from secrets import token_hex
+
+import iso8601
+import paho.mqtt.client as mqtt
+import redis
+import requests
+from flask import (Flask, abort, g, jsonify, redirect, render_template,
+                   request, session, sessions, url_for)
 from flask.sessions import SessionInterface
 from flask_github import GitHub
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -17,6 +29,8 @@ logging.getLogger('fe').setLevel(logging.INFO)
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 app.config.from_envvar('SETTINGS')
+
+socket.setdefaulttimeout(3) # for mqtt
 
 r = redis.Redis()
 
@@ -398,20 +412,21 @@ def content_request_review(asset_id):
         _external=True
     )
 
-    requests.post('https://api.pushover.net/1/messages.json',
-        data = dict(
-            token = app.config['PUSHOVER_APP_KEY'],
-            user = app.config['PUSHOVER_TARGET'],
-            title = "New moderation request",
-            message = u'%s upload from %s.' % (
-                asset['filetype'].capitalize(),
-                g.user,
-            ),
-            url = moderation_url,
-            url_title = "Moderate content",
+    mqtt = mqtt.Client()
+    if app.config.get('MQTT_USERNAME') and app.config.get('MQTT_PASSWORD'):
+        client.username_pw_set(app.config['MQTT_USERNAME'], app.config['MQTT_PASSWORD'])
+    client.connect(app.config['MQTT_SERVER'])
+    result = client.publish(
+        app,config['MQTT_TOPIC'],
+        app.config['MQTT_MESSAGE'].format(
+            user=g.user,
+            asset=asset['filetype'].capitalize(),
+            url=moderation_url,
         ),
-        files = files
     )
+    client.disconnect()
+    assert result[0] == 0
+
     update_asset_userdata(asset, state='review')
     return jsonify(ok = True)
 

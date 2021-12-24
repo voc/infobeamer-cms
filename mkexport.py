@@ -1,4 +1,7 @@
-import requests, os
+import os
+
+import requests
+
 os.makedirs('36c3')
 r = requests.get('http://localhost:8080/content/live?all=1')
 for idx, asset in enumerate(r.json()['assets']):
