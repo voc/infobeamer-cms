@@ -25,7 +25,7 @@ Should work somewhat like this on Ubuntu or Debian:
 
 ```
 git clone this_repo /opt/infobeamer-cms && cd /opt/infobeamer-cms
-virtualenv --system-site-packages env
+python3 -m virtualenv env
 . env/bin/activate
 pip3 install -r requirements.txt
 ```

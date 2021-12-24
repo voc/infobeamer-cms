@@ -5,10 +5,10 @@ After=network.target
 
 [Service]
 Type=exec
-Environment=SETTINGS=settings.cfg
+Environment=SETTINGS=/opt/infobeamer-cms/settings.toml
 Restart=always
 RestartSec=5s
-ExecStart=/usr/bin/gunicorn frontend:app -b 127.0.0.1:8000 -w 4 -t 120 -k gevent --max-requests=1000
+ExecStart=/opt/infobeamer-cms/env/bin/gunicorn frontend:app -b 127.0.0.1:8000 -w 4 -t 120 -k gevent --max-requests=1000
 
 # You may have to adjust these settings
 User=infobeamer-cms
