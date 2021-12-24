@@ -21,29 +21,28 @@ you understand how to use the info-beamer API though.
 
 # Installation
 
-Should work somewhat like this on Ubuntu 18.04:
+Should work somewhat like this on Ubuntu or Debian:
 
 ```
-git clone this_repo /service/cms && cd /service/cms
-apt install python-oauth2client python-flask python-jinja2
+git clone this_repo /opt/infobeamer-cms && cd /opt/infobeamer-cms
 virtualenv --system-site-packages env
 . env/bin/activate
-easy_install -U deps/GitHub-Flask-3.2.0.tar.gz
+pip3 install -r requirements.txt
 ```
 
-As for running in "production". I've been using cloudflare
-in Full(strict) certificate mode:
+As for running in "production":
 
 ```
-apt install nginx-full daemontools-run
-cp nginx.conf /etc/nginx/
+apt install nginx-full
+cp infobeamer-cms-nginx.conf /etc/nginx/sites-enabled/
 # put required certs into referenced directory
-service nginx restart
+systemctl restart nginx
 
 # adapt those settings
-cp settings.example.cfg settings.cfg
-ln -s /service/cms /etc/service
+cp settings.example.toml settings.toml
 
-# Add this to crontab
-*/5 * * * * curl -H "Host: 36c3.infobeamer.com" http://127.0.0.1:8000/sync
+# start via systemd
+cp infobeamer-cms.service /etc/systemd/system/
+cp infobeamer-cms-runperiodic.service /etc/systemd/system/
+cp infobeamer-cms-runperiodic.timer /etc/systemd/system/
 ```

@@ -1,0 +1,10 @@
+# /etc/systemd/system/infobeamer-cms-runperiodic.timer
+[Unit]
+Description=Run infobeamer-cms sync
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+# /etc/systemd/system/infobeamer-cms-runperiodic.service
+[Unit]
+Description=infobeamer-cms sync
+After=network.target
+Requires=infobeamer-cms.service
+
+[Service]
+User=infobeamer-cms
+Group=infobeamer-cms
+WorkingDirectory=/opt/infobeamer-cms
+ExecStart=curl -s -H "Host: infobeamer-cms.example.org" http://127.0.0.1:8000/sync
