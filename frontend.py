@@ -419,7 +419,7 @@ def content_request_review(asset_id):
         client.username_pw_set(app.config['MQTT_USERNAME'], app.config['MQTT_PASSWORD'])
     client.connect(app.config['MQTT_SERVER'])
     result = client.publish(
-        app,config['MQTT_TOPIC'],
+        app.config['MQTT_TOPIC'],
         app.config['MQTT_MESSAGE'].format(
             user=g.user,
             asset=asset['filetype'].capitalize(),
