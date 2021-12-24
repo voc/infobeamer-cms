@@ -424,6 +424,7 @@ def content_request_review(asset_id):
             url=moderation_url,
         ),
     )
+    client.disconnect()
     assert result[0] == 0
 
     update_asset_userdata(asset, state='review')
