@@ -388,12 +388,12 @@ def sync():
     for asset in get_all_live_assets():
         pages.append(
             {
-                'tiles': asset_to_tiles(asset),
-                'interaction': {"key": ""},
-                'layout_id': -1,  # Use first layout
-                'overlap': 0,
-                'auto_duration': 10,
-                'duration': 10,
+                "tiles": asset_to_tiles(asset),
+                "interaction": {"key": ""},
+                "layout_id": -1,  # Use first layout
+                "overlap": 0,
+                "auto_duration": 10,
+                "duration": 10,
             }
         )
 
@@ -556,11 +556,11 @@ def content_moderate(asset_id, sig):
     return render_template(
         "moderate.jinja",
         asset={
-            'id': asset["id"],
-            'user': asset["userdata"]["user"],
-            'filetype': asset["filetype"],
-            'url': url_for("static", filename=cached_asset_name(asset)),
-            'state': state,
+            "id": asset["id"],
+            "user": asset["userdata"]["user"],
+            "filetype": asset["filetype"],
+            "url": url_for("static", filename=cached_asset_name(asset)),
+            "state": state,
         },
         sig=mk_sig(asset_id),
     )
