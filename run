@@ -1,7 +1,0 @@
-#!/bin/bash
-exec 2>&1
-export PORT=8000
-export SETTINGS=settings.cfg
-export WORKERS=4
-chown nobody:nogroup -Rv static
-exec setuidgid nobody env/bin/python /usr/bin/gunicorn frontend:app -b 127.0.0.1:$PORT -w $WORKERS -t 120 -k gevent --max-requests=1000
