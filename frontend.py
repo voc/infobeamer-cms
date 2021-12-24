@@ -210,7 +210,7 @@ class RedisSessionStore(SessionInterface):
         if state:
             r.setex(f"sid:{session.sid}", 86400, pickle.dumps(state, 2))
         else:
-            r.delete("sid:{session.sid}")
+            r.delete(f"sid:{session.sid}")
         if session.new_sid:
             response.set_cookie(
                 app.session_cookie_name,
