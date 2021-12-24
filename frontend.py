@@ -10,6 +10,7 @@ import tempfile
 import time
 import traceback
 from datetime import datetime
+from logging import basicConfig, getLogger
 from secrets import token_hex
 
 import iso8601
@@ -22,9 +23,10 @@ from flask.sessions import SessionInterface
 from flask_github import GitHub
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-log = logging.getLogger('fe')
-logging.basicConfig()
-logging.getLogger('fe').setLevel(logging.INFO)
+basicConfig(
+    format='[%(levelname)s %(name)s] %(message)s',
+    level=logging.INFO,
+)
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -40,26 +42,35 @@ class IBHosted(object):
     def __init__(self):
         self._session = requests.Session()
         self._session.auth = '', app.config['HOSTED_API_KEY']
+        self.log = getLogger('IBHosted')
 
     def get(self, ep, **params):
+        self.log.debug('get("{}", {})'.format(ep, params))
         r = self._session.get('https://info-beamer.com/api/v1/%s' % ep, params=params, timeout=5)
+        self.log.debug(r.text)
         r.raise_for_status()
         return r.json()
 
     def post(self, ep, **data):
+        self.log.debug('post("{}")'.format(ep))
         r = self._session.post('https://info-beamer.com/api/v1/%s' % ep, data=data, timeout=5)
-        log.info(r.text)
+        self.log.debug(r.text)
         r.raise_for_status()
         return r.json()
 
     def delete(self, ep, **data):
+        self.log.debug('post("{}")'.format(ep))
         r = self._session.delete('https://info-beamer.com/api/v1/%s' % ep, data=data, timeout=5)
+        self.log.debug(r.text)
         r.raise_for_status()
         return r.json()
+
+
 ib = IBHosted()
 
 def tojson(v):
     return json.dumps(v, separators=(',', ':'))
+
 
 def get_user_assets():
     assets = ib.get('asset/list')['assets']
@@ -77,6 +88,7 @@ def get_user_assets():
            asset['userdata'].get('state') != 'deleted'
     ]
 
+
 def get_all_live_assets(no_time_filter=False):
     now = int(time.time())
     assets = ib.get('asset/list')['assets']
@@ -91,6 +103,7 @@ def get_all_live_assets(no_time_filter=False):
         ))
     ]
 
+
 def get_scoped_api_key(statements, expire=60, uses=16):
     return ib.post('adhoc/create',
         expire = expire,
@@ -101,10 +114,12 @@ def get_scoped_api_key(statements, expire=60, uses=16):
         })
     )['api_key']
 
+
 def update_asset_userdata(asset, **kw):
     userdata = asset['userdata']
     userdata.update(kw)
     ib.post('asset/%d' % asset['id'], userdata=tojson(userdata))
+
 
 def cached_asset_name(asset):
     filename = 'asset-%d.%s' % (
@@ -113,26 +128,31 @@ def cached_asset_name(asset):
     )
     cache_name = 'static/%s' % filename
     if not os.path.exists(cache_name):
-        log.info("fetching %d" % asset['id'])
+        app.logger.info("fetching %d" % asset['id'])
         dl = ib.get('asset/%d/download' % asset['id'])
         r = requests.get(dl['download_url'], stream=True, timeout=5)
         r.raise_for_status()
         with tempfile.NamedTemporaryFile(delete=False) as f:
             shutil.copyfileobj(r.raw, f)
             f.delete = False
-            os.rename(f.name, cache_name)
+            shutil.move(f.name, cache_name)
             os.chmod(cache_name, 0o664)
         del r
     return filename
 
+
 def get_random(size=16):
     return ''.join('%02x' % random.getrandbits(8) for i in range(size))
 
+
 def mk_sig(value):
+    app.logger.debug('mk_sig("{}")'.format(value))
     return hmac.new(app.config['URL_KEY'], str(value).encode(), digestmod='sha256').hexdigest()
+
 
 def error(msg):
     return jsonify(error = msg), 400
+
 
 class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
     def __init__(self, sid=None, initial=None):
@@ -142,6 +162,7 @@ class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
         self.modified = False
         self.new_sid = not sid
         self.sid = sid or get_random(32)
+
 
 class RedisSessionStore(SessionInterface):
     def open_session(self, app, request):
@@ -167,6 +188,7 @@ class RedisSessionStore(SessionInterface):
                 httponly=True, secure=True, samesite='Lax'
             )
 
+
 app.session_interface = RedisSessionStore()
 
 @app.before_request
@@ -174,6 +196,7 @@ def before_request():
     g.user = session.get('gh_login')
     # g.user = 'mmuman'
     g.avatar = session.get('gh_avatar')
+
 
 @app.route('/github-callback')
 @github.authorized_handler
@@ -190,22 +213,23 @@ def authorized(access_token):
     if github_user['type'] != 'User':
         return redirect(url_for('faq', _anchor='signup'))
 
-    # import pprint; pprint.pprint(github_user)
+    #app,logger.debug(github_user)
 
     age = datetime.utcnow() - iso8601.parse_date(
         github_user['created_at']
     ).replace(tzinfo=None)
 
-    log.info("user is %d days old" % age.days)
+    app.logger.info("user is %d days old" % age.days)
     if age.days < 31:
         return redirect(url_for('faq', _anchor='signup'))
 
-    log.info("user has %d followers" % github_user['followers'])
+    app.logger.info("user has %d followers" % github_user['followers'])
     if github_user['followers'] < 5:
         return redirect(url_for('faq', _anchor='signup'))
 
     session['gh_login'] = github_user['login']
     return redirect(url_for('dashboard'))
+
 
 @app.route('/login')
 def login():
@@ -214,46 +238,58 @@ def login():
     session['state'] = state = get_random()
     return github.authorize(state=state)
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
+
 
 @app.route('/last')
 def last():
     return render_template('last.jinja')
 
+
 @app.route('/faq')
 def faq():
     return render_template('faq.jinja')
 
-@app.route('/interrupt')
-def saal():
-    interrupt_key = get_scoped_api_key([{
-        "Action": "device:node-message",
-        "Condition": {
-            "StringEquals": {
-                "message:path": "root/remote/trigger"
-            }
-        },
-        "Effect": "allow",
-    }], expire=300, uses=20)
-    return render_template('interrupt.jinja',
-        interrupt_key = interrupt_key,
-    )
+
+#@app.route('/interrupt')
+#def saal():
+#    interrupt_key = get_scoped_api_key([{
+#        "Action": "device:node-message",
+#        "Condition": {
+#            "StringEquals": {
+#                "message:path": "root/remote/trigger"
+#            }
+#        },
+#        "Effect": "allow",
+#    }], expire=300, uses=20)
+#    return render_template('interrupt.jinja',
+#        interrupt_key = interrupt_key,
+#    )
+
 
 @app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.jinja')
 
+
 @app.route('/sync')
 def sync():
+    log = getLogger('sync')
+
+    log.info('Starting sync')
+
     def asset_to_tiles(asset):
-        # Change this if you want another page layout for user content
+        log.debug('adding {} to Page'.format(asset['id']))
+
         tiles = []
         if asset['filetype'] == 'video':
             tiles.append({
@@ -312,17 +348,27 @@ def sync():
             duration = 10,
         ))
 
+    log.info('There are currently {} pages visible'.format(len(pages)))
+
     for setup_id in app.config['SETUP_IDS']:
         config = ib.get("setup/%d" % setup_id)['config']['']
+
         for schedule in config['schedules']:
             if schedule['name'] == 'User Content':
+                log.info('Found schedule "User Content" in setup {}'.format(setup_id))
+
                 schedule['pages'] = pages
+
         ib.post("setup/%d" % setup_id,
             config = tojson({'': config}),
             mode = 'update',
         )
+
     r.set('last-sync', int(time.time()))
+    log.info('updated everything')
+
     return 'ok'
+
 
 @app.route('/content/list')
 def content_list():
@@ -333,6 +379,7 @@ def content_list():
     return jsonify(
         assets = assets,
     )
+
 
 @app.route('/content/upload', methods=['POST'])
 def content_upload():
@@ -391,6 +438,7 @@ def content_upload():
         }], uses=1)
     )
 
+
 @app.route('/content/review/<int:asset_id>', methods=['POST'])
 def content_request_review(asset_id):
     if not g.user:
@@ -429,8 +477,11 @@ def content_request_review(asset_id):
     client.disconnect()
     assert result[0] == 0
 
+    app.logger.info('moderation url for {} is {}'.format(asset['id'], moderation_url)) 
+
     update_asset_userdata(asset, state='review')
     return jsonify(ok = True)
+
 
 @app.route('/content/moderate/<int:asset_id>-<sig>')
 def content_moderate(asset_id, sig):
@@ -455,6 +506,7 @@ def content_moderate(asset_id, sig):
         sig = mk_sig(asset_id),
     )
 
+
 @app.route('/content/moderate/<int:asset_id>-<sig>/<any(confirm,reject):result>', methods=['POST'])
 def content_moderate_result(asset_id, sig, result):
     if sig != mk_sig(asset_id):
@@ -465,10 +517,13 @@ def content_moderate_result(asset_id, sig, result):
         traceback.print_exc()
         abort(404)
     if result == "confirm":
+        app.logger.info('Asset {} was confirmed'.format(asset['id']))
         update_asset_userdata(asset, state='confirmed')
     else:
+        app.logger.info('Asset {} was rejected'.format(asset['id']))
         update_asset_userdata(asset, state='rejected')
     return jsonify(ok = True)
+
 
 @app.route('/content/<int:asset_id>', methods=['POST'])
 def content_update(asset_id):
@@ -486,6 +541,7 @@ def content_update(asset_id):
         return error('Cannot update')
     return jsonify(ok = True)
 
+
 @app.route('/content/<int:asset_id>', methods=['DELETE'])
 def content_delete(asset_id):
     if not g.user:
@@ -499,6 +555,7 @@ def content_delete(asset_id):
         traceback.print_exc()
         return error('Cannot delete')
     return jsonify(ok = True)
+
 
 @app.route('/content/live')
 def content_live():
@@ -515,6 +572,7 @@ def content_live():
     )
     resp.headers['Cache-Control'] = 'public, max-age=30'
     return resp
+
 
 @app.route('/content/last')
 def content_last():
@@ -557,17 +615,20 @@ def content_last():
     resp.headers['Cache-Control'] = 'public, max-age=5'
     return resp
 
+
 @app.route('/check/sync')
 def check_sync():
     if time.time() > int(r.get('last-sync')) + 1200:
         abort(503)
     return 'ok'
 
+
 @app.route('/check/twitter')
 def check_twitter():
     if time.time() > int(r.get('last-twitter')) + 1200:
         abort(503)
     return 'ok'
+
 
 @app.route('/proof', methods=['POST'])
 def proof():
@@ -585,9 +646,11 @@ def proof():
     p.execute()
     return "ok"
 
+
 @app.route('/robots.txt')
 def robots_txt():
     return "User-Agent: *\nDisallow: /\n"
+
 
 if __name__ == '__main__':
     app.run(port=8080)
