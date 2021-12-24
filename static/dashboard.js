@@ -258,7 +258,7 @@ const Index = Vue.component('index', {
         Upload FullHD JPG or 10s H264 video..
       </button>
       &nbsp;
-      Your project image/video <b>must</b> include a way to reach you at 36C3.
+      Your project image/video <b>must</b> include a way to reach you during this event.
       <a href='/faq'>Read the FAQ..</a>
     </div>
   `,
