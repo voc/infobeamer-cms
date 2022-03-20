@@ -261,7 +261,7 @@ def authorized(access_token):
         return redirect(url_for("faq", _anchor="signup"))
 
     if login_disabled_for_user(github_user["login"]):
-        abort(403)
+        return render_template("time_error.jinja")
 
     # app.logger.debug(github_user)
 
