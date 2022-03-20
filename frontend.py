@@ -249,9 +249,6 @@ def before_request():
 @app.route("/github-callback")
 @github.authorized_handler
 def authorized(access_token):
-    if g.now > app.config["TIME_MAX"] or g.now < app.config["TIME_MIN"]:
-        abort(403)
-
     if access_token is None:
         return redirect(url_for("index"))
 
