@@ -226,15 +226,29 @@ app.session_interface = RedisSessionStore()
 
 @app.before_request
 def before_request():
-    g.user = session.get("gh_login")
+    user = session.get("gh_login")
+    g.now = datetime.utcnow().timestamp()
+
+    if (
+        user
+        and user.lower() not in app.config.get("ADMIN_USERS", set())
+        and (g.now > app.config["TIME_MAX"] or g.now < app.config["TIME_MIN"])
+    ):
+        session.clear()
+        g.user = None
+        g.avatar = None
+        return
+
+    g.user = user
     g.avatar = session.get("gh_avatar")
 
 
 @app.route("/github-callback")
 @github.authorized_handler
 def authorized(access_token):
-    if datetime.utcnow().timestamp() > app.config["TIME_MAX"]:
+    if g.now > app.config["TIME_MAX"]:
         abort(403)
+
     if access_token is None:
         return redirect(url_for("index"))
 
@@ -267,8 +281,9 @@ def authorized(access_token):
 
 @app.route("/login")
 def login():
-    if datetime.utcnow().timestamp() > app.config["TIME_MAX"]:
+    if g.now > app.config["TIME_MAX"]:
         abort(403)
+
     if g.user:
         return redirect(url_for("dashboard"))
     session["state"] = state = get_random()
