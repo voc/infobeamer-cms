@@ -2,7 +2,8 @@
   text-align: center;
 }
 .navbar-brand > img {
-  margin-top: -20px;
+  height: 40px;
+  margin-top: -10px;
   display: inline-block;
 }
 .mobile-intro {
