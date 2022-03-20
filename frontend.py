@@ -287,9 +287,6 @@ def authorized(access_token):
 
 @app.route("/login")
 def login():
-    if login_disabled_for_user():
-        abort(403)
-
     if g.user:
         return redirect(url_for("dashboard"))
     session["state"] = state = get_random()
