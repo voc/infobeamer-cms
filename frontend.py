@@ -233,6 +233,8 @@ def before_request():
 @app.route("/github-callback")
 @github.authorized_handler
 def authorized(access_token):
+    if datetime.utcnow().timestamp() > app.config["TIME_MAX"]:
+        abort(403)
     if access_token is None:
         return redirect(url_for("index"))
 
@@ -265,6 +267,8 @@ def authorized(access_token):
 
 @app.route("/login")
 def login():
+    if datetime.utcnow().timestamp() > app.config["TIME_MAX"]:
+        abort(403)
     if g.user:
         return redirect(url_for("dashboard"))
     session["state"] = state = get_random()
@@ -382,7 +386,8 @@ def sync():
                 },
             }
         )
-        tiles.extend(app.config["EXTRA_ASSETS"])
+        if "EXTRA_ASSETS" in app.config:
+            tiles.extend(app.config["EXTRA_ASSETS"])
         return tiles
 
     pages = []
