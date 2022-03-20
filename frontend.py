@@ -329,6 +329,8 @@ def faq():
 
 @app.route("/dashboard")
 def dashboard():
+    if not g.user:
+        return redirect(url_for("index"))
     return render_template("dashboard.jinja")
 
 
