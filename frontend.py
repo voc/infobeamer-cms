@@ -237,7 +237,6 @@ def before_request():
     user = session.get("gh_login")
 
     if login_disabled_for_user(user):
-        session.clear()
         g.user = None
         g.avatar = None
         return
