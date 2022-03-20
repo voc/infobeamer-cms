@@ -224,16 +224,19 @@ class RedisSessionStore(SessionInterface):
 app.session_interface = RedisSessionStore()
 
 
+def login_disabled_for_user(user=None):
+    if user and user.lower() in app.config.get("ADMIN_USERS", set()):
+        return False
+
+    now = datetime.utcnow().timestamp()
+    return now < app.config["TIME_MAX"] or now > app.config["TIME_MIN"]
+
+
 @app.before_request
 def before_request():
     user = session.get("gh_login")
-    g.now = datetime.utcnow().timestamp()
 
-    if (
-        user
-        and user.lower() not in app.config.get("ADMIN_USERS", set())
-        and (g.now > app.config["TIME_MAX"] or g.now < app.config["TIME_MIN"])
-    ):
+    if login_disabled_for_user(user):
         session.clear()
         g.user = None
         g.avatar = None
@@ -246,7 +249,7 @@ def before_request():
 @app.route("/github-callback")
 @github.authorized_handler
 def authorized(access_token):
-    if g.now > app.config["TIME_MAX"]:
+    if g.now > app.config["TIME_MAX"] or g.now < app.config["TIME_MIN"]:
         abort(403)
 
     if access_token is None:
@@ -260,6 +263,9 @@ def authorized(access_token):
     github_user = github.get("user", access_token=access_token)
     if github_user["type"] != "User":
         return redirect(url_for("faq", _anchor="signup"))
+
+    if login_disabled_for_user(github_user["login"]):
+        abort(403)
 
     # app.logger.debug(github_user)
 
@@ -281,7 +287,7 @@ def authorized(access_token):
 
 @app.route("/login")
 def login():
-    if g.now > app.config["TIME_MAX"]:
+    if login_disabled_for_user():
         abort(403)
 
     if g.user:
@@ -525,6 +531,8 @@ def content_upload():
 def content_request_review(asset_id):
     if not g.user:
         return error("Needs login")
+    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+        abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -566,6 +574,10 @@ def content_request_review(asset_id):
 def content_moderate(asset_id, sig):
     if sig != mk_sig(asset_id):
         abort(404)
+    if not g.user:
+        return error("Needs login")
+    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+        abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -596,6 +608,10 @@ def content_moderate(asset_id, sig):
 def content_moderate_result(asset_id, sig, result):
     if sig != mk_sig(asset_id):
         abort(404)
+    if not g.user:
+        return error("Needs login")
+    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+        abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
