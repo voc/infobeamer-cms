@@ -524,8 +524,6 @@ def content_upload():
 def content_request_review(asset_id):
     if not g.user:
         return error("Needs login")
-    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
-        abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
