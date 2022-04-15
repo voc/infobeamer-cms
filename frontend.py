@@ -229,7 +229,7 @@ def login_disabled_for_user(user=None):
         return False
 
     now = datetime.utcnow().timestamp()
-    return now < app.config["TIME_MAX"] or now > app.config["TIME_MIN"]
+    return not (app.config["TIME_MIN"] < now < app.config["TIME_MAX"])
 
 
 @app.before_request
