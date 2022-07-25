@@ -458,13 +458,14 @@ def content_upload():
     if not g.user:
         return error("Needs login")
 
-    max_uploads = r.get(f"max_uploads:{g.user}")
-    if max_uploads is not None:
-        max_uploads = int(max_uploads)
-    if not max_uploads:
-        max_uploads = app.config["MAX_UPLOADS"]
-    if len(get_user_assets()) >= max_uploads:
-        return error("You have reached your upload limit")
+    if g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+        max_uploads = r.get(f"max_uploads:{g.user}")
+        if max_uploads is not None:
+            max_uploads = int(max_uploads)
+        if not max_uploads:
+            max_uploads = app.config["MAX_UPLOADS"]
+        if len(get_user_assets()) >= max_uploads:
+            return error("You have reached your upload limit")
 
     filetype = request.values.get("filetype")
     if filetype not in ("image", "video"):
