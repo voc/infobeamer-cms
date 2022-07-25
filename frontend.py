@@ -537,6 +537,11 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
+    if g.user.lower() in app.config.get("ADMIN_USERS", set()):
+        update_asset_userdata(asset, state="confirmed")
+        app.logger.warn('auto-confirming {} because it was uploaded by admin {}'.format(asset['id'], g.user))
+        return jsonify(ok=True)
+
     moderation_url = url_for(
         "content_moderate", asset_id=asset_id, sig=mk_sig(asset_id), _external=True
     )
