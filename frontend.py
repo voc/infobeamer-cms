@@ -355,6 +355,7 @@ def sync():
                     "config": {
                         "layer": -5,
                         "looped": True,
+                        "fade_time": 0.5,
                     },
                 }
             )
@@ -367,6 +368,7 @@ def sync():
                     "y1": 0,
                     "x2": 1920,
                     "y2": 1080,
+                    "config": {"fade_time": 0.5},
                 }
             )
         tiles.append(
@@ -377,7 +379,7 @@ def sync():
                 "y1": 1040,
                 "x2": 1920,
                 "y2": 1080,
-                "config": {"color": "#000000", "alpha": 230, "fade_time": 0},
+                "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
             }
         )
         tiles.append(
