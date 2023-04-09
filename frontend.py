@@ -270,11 +270,8 @@ def authorized(access_token):
     )
 
     app.logger.info(f"user is {age.days} days old")
-    if age.days < 31:
-        return redirect(url_for("faq", _anchor="signup"))
-
     app.logger.info("user has {} followers".format(github_user["followers"]))
-    if github_user["followers"] < 5:
+    if age.days < 31 and github_user["followers"] < 10:
         return redirect(url_for("faq", _anchor="signup"))
 
     session["gh_login"] = github_user["login"]
