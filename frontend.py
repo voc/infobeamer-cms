@@ -368,39 +368,42 @@ def sync():
                     "config": {"fade_time": 0.5},
                 }
             )
-        tiles.append(
-            {
-                "type": "flat",
-                "asset": "flat.png",
-                "x1": 0,
-                "y1": 1040,
-                "x2": 1920,
-                "y2": 1080,
-                "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
-            }
-        )
-        tiles.append(
-            {
-                "type": "markup",
-                "asset": "default-font.ttf",
-                "x1": 150,
-                "y1": 1048,
-                "x2": 1900,
-                "y2": 1080,
-                "config": {
-                    "font_size": 25,
-                    "fade_time": 0.5,
-                    "text": "Project by @{user} - visit {url} to share your own.".format(
-                        user=asset["userdata"]["user"],
-                        url=url_for(
-                            "index",
-                            _external=True,
+        if asset["userdata"]["user"].lower() not in app.config.get(
+            "ADMIN_USERS", set()
+        ):
+            tiles.append(
+                {
+                    "type": "flat",
+                    "asset": "flat.png",
+                    "x1": 0,
+                    "y1": 1040,
+                    "x2": 1920,
+                    "y2": 1080,
+                    "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
+                }
+            )
+            tiles.append(
+                {
+                    "type": "markup",
+                    "asset": "default-font.ttf",
+                    "x1": 150,
+                    "y1": 1048,
+                    "x2": 1900,
+                    "y2": 1080,
+                    "config": {
+                        "font_size": 25,
+                        "fade_time": 0.5,
+                        "text": "Project by @{user} - visit {url} to share your own.".format(
+                            user=asset["userdata"]["user"],
+                            url=url_for(
+                                "index",
+                                _external=True,
+                            ),
                         ),
-                    ),
-                    "color": "#dddddd",
-                },
-            }
-        )
+                        "color": "#dddddd",
+                    },
+                }
+            )
         if "EXTRA_ASSETS" in app.config:
             tiles.extend(app.config["EXTRA_ASSETS"])
         return tiles
@@ -538,7 +541,11 @@ def content_request_review(asset_id):
 
     if g.user.lower() in app.config.get("ADMIN_USERS", set()):
         update_asset_userdata(asset, state="confirmed")
-        app.logger.warn('auto-confirming {} because it was uploaded by admin {}'.format(asset['id'], g.user))
+        app.logger.warn(
+            "auto-confirming {} because it was uploaded by admin {}".format(
+                asset["id"], g.user
+            )
+        )
         return jsonify(ok=True)
 
     moderation_url = url_for(
