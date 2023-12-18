@@ -8,7 +8,7 @@ Vue.component('interrupt', {
       <template v-if='!selected_room'>
         <p v-for='room in rooms'>
           <button @click='selected_room=room.name' class='btn btn-lg btn-block'>
-            {{room.name}}..
+            {{room.name}}
           </button>
         </p>
       </template>
