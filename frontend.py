@@ -307,20 +307,26 @@ def faq():
     return render_template("faq.jinja")
 
 
-# @app.route('/interrupt')
-# def saal():
-#    interrupt_key = get_scoped_api_key([{
-#        "Action": "device:node-message",
-#        "Condition": {
-#            "StringEquals": {
-#                "message:path": "root/remote/trigger"
-#            }
-#        },
-#        "Effect": "allow",
-#    }], expire=300, uses=20)
-#    return render_template('interrupt.jinja',
-#        interrupt_key = interrupt_key,
-#    )
+if "INTERRUPT_KEY" in app.config:
+    @app.route("/interrupt/{}".format(app.config["INTERRUPT_KEY"]))
+    def saal():
+        interrupt_key = get_scoped_api_key(
+            [
+                {
+                    "Action": "device:node-message",
+                    "Condition": {
+                        "StringEquals": {"message:path": "root/remote/trigger"}
+                    },
+                    "Effect": "allow",
+                }
+            ],
+            expire=300,
+            uses=20,
+        )
+        return render_template(
+            "interrupt.jinja",
+            interrupt_key=interrupt_key,
+        )
 
 
 @app.route("/dashboard")
