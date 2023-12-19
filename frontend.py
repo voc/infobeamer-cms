@@ -320,7 +320,7 @@ if "INTERRUPT_KEY" in app.config:
                     "Effect": "allow",
                 }
             ],
-            expire=300,
+            expire=900,
             uses=20,
         )
         return render_template(
