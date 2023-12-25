@@ -257,11 +257,13 @@ const Index = Vue.component('index', {
       <button @click='upload' class='btn btn-primary' :disabled='busy'>
         Upload FullHD JPG or 10s H264 video..
       </button>
-      &nbsp;
+      <br>
       The bottom 40 pixels of your content will be overlayed by a bar
       showing your github username and will therefore not be visible.
-      Your project image/video <b>must</b> include a way to reach you 
-      during this event. <a href='/faq'>Read the FAQ..</a>
+      Your project image/video <b>must</b> include a way to reach you
+      during this event. If you're getting "Access denied" errors,
+      double check that your file matches the specifications.
+      <a href='/faq'>Read the FAQ..</a>
     </div>
   `,
   computed: {
