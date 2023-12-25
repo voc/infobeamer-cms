@@ -430,13 +430,14 @@ def sync():
     log.info("There are currently {} pages visible".format(len(pages)))
 
     for setup_id in app.config["SETUP_IDS"]:
+        log.info("[Setup {}] Getting old config".format(setup_id))
         config = ib.get(f"setup/{setup_id}")["config"][""]
 
         old_config = config.copy()
 
         for schedule in config["schedules"]:
             if schedule["name"] == "User Content":
-                log.info('Found schedule "User Content" in setup {}'.format(setup_id))
+                log.info('[Setup {}] Found schedule "User Content"'.format(setup_id))
 
                 schedule["pages"] = pages
 
