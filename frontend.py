@@ -432,17 +432,23 @@ def sync():
     for setup_id in app.config["SETUP_IDS"]:
         config = ib.get(f"setup/{setup_id}")["config"][""]
 
+        old_config = config.copy()
+
         for schedule in config["schedules"]:
             if schedule["name"] == "User Content":
                 log.info('Found schedule "User Content" in setup {}'.format(setup_id))
 
                 schedule["pages"] = pages
 
-        ib.post(
-            f"setup/{setup_id}",
-            config=tojson({"": config}),
-            mode="update",
-        )
+        if old_config != config:
+            log.info("[Setup {}] Config has changed, updating".format(setup_id))
+            ib.post(
+                f"setup/{setup_id}",
+                config=tojson({"": config}),
+                mode="update",
+            )
+        else:
+            log.info("[Setup {}] Config has not changed, skipping update".format(setup_id))
 
     r.set("last-sync", int(time.time()))
     log.info("updated everything")
