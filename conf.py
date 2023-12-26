@@ -4,8 +4,8 @@ try:
 except ImportError:
     from rtoml import load as toml_load
 
-from os import environ
 import logging
+from os import environ
 
 with open(environ["SETTINGS"]) as f:
     CONFIG = toml_load(f.read())
