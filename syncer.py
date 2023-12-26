@@ -82,7 +82,7 @@ def asset_to_tiles(asset):
 
 
 pages = []
-for asset in get_all_live_assets(ib):
+for asset in get_all_live_assets():
     pages.append(
         {
             "tiles": asset_to_tiles(asset),
