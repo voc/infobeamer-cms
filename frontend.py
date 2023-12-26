@@ -225,7 +225,7 @@ def content_upload():
     extension = "jpg" if filetype == "image" else "mp4"
 
     filename = "user/{}/{}_{}.{}".format(
-        g.user, datetime.utcnow().strftime("%Y-%d-%m %H:%M:%S"), token_hex(8), extension
+        g.user, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), token_hex(8), extension
     )
     condition = {
         "StringEquals": {
