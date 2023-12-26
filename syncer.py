@@ -1,10 +1,7 @@
 from json import dumps as json_dumps
 from logging import getLogger
 
-from flask import url_for
-
 from conf import CONFIG
-from frontend import app
 from helper import get_all_live_assets
 from ib_hosted import ib
 

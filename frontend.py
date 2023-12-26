@@ -1,13 +1,11 @@
-import json
 import logging
 import os
 import random
 import shutil
 import socket
 import tempfile
-import time
 from datetime import datetime
-from logging import basicConfig, getLogger
+from logging import basicConfig
 from secrets import token_hex
 
 import iso8601
@@ -449,56 +447,56 @@ def content_live():
     return resp
 
 
-@app.route("/content/last")
-def content_last():
-    assets = get_all_live_assets()
-    asset_by_id = dict((asset["id"], asset) for asset in assets)
-
-    last = {}
-
-    for room in CONFIG["ROOMS"]:
-        proofs = [
-            json.loads(data)
-            for data in r.zrange("last:{}".format(room["device_id"]), 0, -1)
-        ]
-
-        last[room["name"]] = room_last = []
-        for proof in reversed(proofs):
-            asset = asset_by_id.get(proof["asset_id"])
-            if asset is None:
-                continue
-            room_last.append(
-                {
-                    "id": proof["id"],
-                    "user": asset["userdata"]["user"],
-                    "filetype": asset["filetype"],
-                    "shown": int(proof["ts"]),
-                    "thumb": asset["thumb"],
-                    "url": url_for("static", filename=cached_asset_name(asset)),
-                }
-            )
-            if len(room_last) > 10:
-                break
-
-    resp = jsonify(
-        last=[[room["name"], last.get(room["name"], [])] for room in CONFIG["ROOMS"]]
-    )
-    resp.headers["Cache-Control"] = "public, max-age=5"
-    return resp
-
-
-@app.route("/proof", methods=["POST"])
-def proof():
-    proofs = [(json.loads(row), row) for row in request.stream.read().split("\n")]
-    device_ids = set()
-    p = r.pipeline()
-    for proof, row in proofs:
-        p.zadd("last:{}".format(proof["device_id"]), row, proof["ts"])
-        device_ids.add(proof["device_id"])
-    for device_id in device_ids:
-        p.zremrangebyscore(f"last:{device_id}", 0, time.time() - 1200)
-    p.execute()
-    return "ok"
+# @app.route("/content/last")
+# def content_last():
+#    assets = get_all_live_assets()
+#    asset_by_id = dict((asset["id"], asset) for asset in assets)
+#
+#    last = {}
+#
+#    for room in CONFIG["ROOMS"]:
+#        proofs = [
+#            json.loads(data)
+#            for data in r.zrange("last:{}".format(room["device_id"]), 0, -1)
+#        ]
+#
+#        last[room["name"]] = room_last = []
+#        for proof in reversed(proofs):
+#            asset = asset_by_id.get(proof["asset_id"])
+#            if asset is None:
+#                continue
+#            room_last.append(
+#                {
+#                    "id": proof["id"],
+#                    "user": asset["userdata"]["user"],
+#                    "filetype": asset["filetype"],
+#                    "shown": int(proof["ts"]),
+#                    "thumb": asset["thumb"],
+#                    "url": url_for("static", filename=cached_asset_name(asset)),
+#                }
+#            )
+#            if len(room_last) > 10:
+#                break
+#
+#    resp = jsonify(
+#        last=[[room["name"], last.get(room["name"], [])] for room in CONFIG["ROOMS"]]
+#    )
+#    resp.headers["Cache-Control"] = "public, max-age=5"
+#    return resp
+#
+#
+# @app.route("/proof", methods=["POST"])
+# def proof():
+#    proofs = [(json.loads(row), row) for row in request.stream.read().split("\n")]
+#    device_ids = set()
+#    p = r.pipeline()
+#    for proof, row in proofs:
+#        p.zadd("last:{}".format(proof["device_id"]), row, proof["ts"])
+#        device_ids.add(proof["device_id"])
+#    for device_id in device_ids:
+#        p.zremrangebyscore(f"last:{device_id}", 0, time.time() - 1200)
+#    p.execute()
+#    return "ok"
 
 
 @app.route("/robots.txt")
