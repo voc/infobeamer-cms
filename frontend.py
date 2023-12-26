@@ -5,7 +5,6 @@ import shutil
 import socket
 import tempfile
 from datetime import datetime
-from logging import basicConfig
 from secrets import token_hex
 
 import iso8601
@@ -36,11 +35,6 @@ from helper import (
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
-
-basicConfig(
-    format="[%(levelname)s %(name)s] %(message)s",
-    level=logging.INFO,
-)
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
