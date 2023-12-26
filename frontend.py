@@ -275,7 +275,7 @@ def authorized(access_token):
         return redirect(url_for("faq", _anchor="signup"))
 
     session["gh_login"] = github_user["login"]
-    if 'redirect_after_login' in session:
+    if "redirect_after_login" in session:
         return redirect(session["redirect_after_login"])
     return redirect(url_for("dashboard"))
 
@@ -310,6 +310,7 @@ def faq():
 
 
 if "INTERRUPT_KEY" in app.config:
+
     @app.route("/interrupt/{}".format(app.config["INTERRUPT_KEY"]))
     def saal():
         interrupt_key = get_scoped_api_key(
@@ -452,7 +453,9 @@ def sync():
                 mode="update",
             )
         else:
-            log.info("[Setup {}] Config has not changed, skipping update".format(setup_id))
+            log.info(
+                "[Setup {}] Config has not changed, skipping update".format(setup_id)
+            )
 
     r.set("last-sync", int(time.time()))
     log.info("updated everything")
@@ -464,7 +467,7 @@ def sync():
 def content_list():
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
     assets = get_user_assets()
     random.shuffle(assets)
     return jsonify(
@@ -476,7 +479,7 @@ def content_list():
 def content_upload():
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
     if g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         max_uploads = r.get(f"max_uploads:{g.user}")
@@ -545,7 +548,7 @@ def content_upload():
 def content_request_review(asset_id):
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -598,7 +601,7 @@ def content_moderate(asset_id, sig):
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
     elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         abort(401)
 
@@ -633,7 +636,7 @@ def content_moderate_result(asset_id, sig, result):
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
     elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         abort(401)
 
@@ -656,7 +659,7 @@ def content_moderate_result(asset_id, sig, result):
 def content_update(asset_id):
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -682,7 +685,7 @@ def content_update(asset_id):
 def content_delete(asset_id):
     if not g.user:
         session["redirect_after_login"] = request.url
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
