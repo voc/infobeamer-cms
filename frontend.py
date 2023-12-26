@@ -1,8 +1,6 @@
-import hmac
 import json
 import logging
 import os
-import pickle
 import random
 import shutil
 import socket
@@ -14,7 +12,6 @@ from secrets import token_hex
 
 import iso8601
 import paho.mqtt.client as mqtt
-import redis
 import requests
 from flask import (
     Flask,
@@ -25,13 +22,22 @@ from flask import (
     render_template,
     request,
     session,
-    sessions,
     url_for,
 )
-from flask.sessions import SessionInterface
 from flask_github import GitHub
-from toml import load as toml_load
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+from conf import CONFIG
+from helper import (
+    error,
+    get_all_live_assets,
+    get_random,
+    get_user_assets,
+    login_disabled_for_user,
+    mk_sig,
+)
+from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
+from redis_session import RedisSessionStore
 
 basicConfig(
     format="[%(levelname)s %(name)s] %(message)s",
@@ -40,109 +46,21 @@ basicConfig(
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
-app.config.from_file(os.environ["SETTINGS"], load=toml_load)
+
+for copy_key in (
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "MAX_UPLOADS",
+    "TIME_MAX",
+    "TIME_MIN",
+):
+    app.config[copy_key] = CONFIG[copy_key]
 
 socket.setdefaulttimeout(3)  # for mqtt
 
-r = redis.Redis()
 
 github = GitHub(app)
-
-
-class IBHosted(object):
-    def __init__(self):
-        self._session = requests.Session()
-        self._session.auth = "", app.config["HOSTED_API_KEY"]
-        self.log = getLogger("IBHosted")
-
-    def get(self, ep, **params):
-        self.log.debug(f'get("{ep}", {params})')
-        r = self._session.get(
-            f"https://info-beamer.com/api/v1/{ep}", params=params, timeout=5
-        )
-        self.log.debug(r.text)
-        r.raise_for_status()
-        return r.json()
-
-    def post(self, ep, **data):
-        self.log.debug(f'post("{ep}")')
-        r = self._session.post(
-            f"https://info-beamer.com/api/v1/{ep}", data=data, timeout=5
-        )
-        self.log.debug(r.text)
-        r.raise_for_status()
-        return r.json()
-
-    def delete(self, ep, **data):
-        self.log.debug(f'delete("{ep}")')
-        r = self._session.delete(
-            f"https://info-beamer.com/api/v1/{ep}", data=data, timeout=5
-        )
-        self.log.debug(r.text)
-        r.raise_for_status()
-        return r.json()
-
-
-ib = IBHosted()
-
-
-def tojson(v):
-    return json.dumps(v, separators=(",", ":"))
-
-
-def get_user_assets():
-    assets = ib.get("asset/list")["assets"]
-    return [
-        {
-            "id": asset["id"],
-            "filetype": asset["filetype"],
-            "thumb": asset["thumb"],
-            "state": asset["userdata"].get("state", "new"),
-            "starts": asset["userdata"].get("starts"),
-            "ends": asset["userdata"].get("ends"),
-        }
-        for asset in assets
-        if asset["userdata"].get("user") == g.user
-        and asset["userdata"].get("state") != "deleted"
-    ]
-
-
-def get_all_live_assets(no_time_filter=False):
-    now = int(time.time())
-    assets = ib.get("asset/list")["assets"]
-    return [
-        asset
-        for asset in assets
-        if asset["userdata"].get("state") in ("confirmed",)
-        and asset["userdata"].get("user") is not None
-        and (
-            no_time_filter
-            or (
-                (asset["userdata"].get("starts") or now) <= now
-                and (asset["userdata"].get("ends") or now) >= now
-            )
-        )
-    ]
-
-
-def get_scoped_api_key(statements, expire=60, uses=16):
-    return ib.post(
-        "adhoc/create",
-        expire=expire,
-        uses=uses,
-        policy=tojson(
-            {
-                "Version": 1,
-                "Statements": statements,
-            }
-        ),
-    )["api_key"]
-
-
-def update_asset_userdata(asset, **kw):
-    userdata = asset["userdata"]
-    userdata.update(kw)
-    ib.post("asset/{}".format(asset["id"]), userdata=tojson(userdata))
+app.session_interface = RedisSessionStore()
 
 
 def cached_asset_name(asset):
@@ -165,71 +83,6 @@ def cached_asset_name(asset):
         del r
 
     return filename
-
-
-def get_random(size=16):
-    return "".join("%02x" % random.getrandbits(8) for i in range(size))
-
-
-def mk_sig(value):
-    app.logger.debug(f'mk_sig("{value}")')
-    return hmac.new(
-        app.config["URL_KEY"].encode(), str(value).encode(), digestmod="sha256"
-    ).hexdigest()
-
-
-def error(msg):
-    return jsonify(error=msg), 400
-
-
-class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
-    def __init__(self, sid=None, initial=None):
-        def on_update(self):
-            self.modified = True
-
-        sessions.CallbackDict.__init__(self, initial, on_update)
-        self.modified = False
-        self.new_sid = not sid
-        self.sid = sid or get_random(32)
-
-
-class RedisSessionStore(SessionInterface):
-    def open_session(self, app, request):
-        sid = request.cookies.get(app.session_cookie_name)
-        if not sid:
-            return RedisSession()
-        data = r.get(f"sid:{sid}")
-        if data is None:
-            return RedisSession()
-        return RedisSession(sid, pickle.loads(data))
-
-    def save_session(self, app, session, response):
-        if not session.modified:
-            return
-        state = dict(session)
-        if state:
-            r.setex(f"sid:{session.sid}", 86400, pickle.dumps(state, 2))
-        else:
-            r.delete(f"sid:{session.sid}")
-        if session.new_sid:
-            response.set_cookie(
-                app.session_cookie_name,
-                session.sid,
-                httponly=True,
-                secure=True,
-                samesite="Lax",
-            )
-
-
-app.session_interface = RedisSessionStore()
-
-
-def login_disabled_for_user(user=None):
-    if user and user.lower() in app.config.get("ADMIN_USERS", set()):
-        return False
-
-    now = datetime.utcnow().timestamp()
-    return not (app.config["TIME_MIN"] < now < app.config["TIME_MAX"])
 
 
 @app.before_request
@@ -309,9 +162,9 @@ def faq():
     return render_template("faq.jinja")
 
 
-if "INTERRUPT_KEY" in app.config:
+if "INTERRUPT_KEY" in CONFIG:
 
-    @app.route("/interrupt/{}".format(app.config["INTERRUPT_KEY"]))
+    @app.route("/interrupt/{}".format(CONFIG["INTERRUPT_KEY"]))
     def saal():
         interrupt_key = get_scoped_api_key(
             [
@@ -339,130 +192,6 @@ def dashboard():
     return render_template("dashboard.jinja")
 
 
-@app.route("/sync")
-def sync():
-    log = getLogger("sync")
-
-    log.info("Starting sync")
-
-    def asset_to_tiles(asset):
-        log.debug("adding {} to Page".format(asset["id"]))
-
-        tiles = []
-        if asset["filetype"] == "video":
-            tiles.append(
-                {
-                    "type": "rawvideo",
-                    "asset": asset["id"],
-                    "x1": 0,
-                    "y1": 0,
-                    "x2": 1920,
-                    "y2": 1080,
-                    "config": {
-                        "layer": -5,
-                        "looped": True,
-                        "fade_time": 0.5,
-                    },
-                }
-            )
-        else:
-            tiles.append(
-                {
-                    "type": "image",
-                    "asset": asset["id"],
-                    "x1": 0,
-                    "y1": 0,
-                    "x2": 1920,
-                    "y2": 1080,
-                    "config": {"fade_time": 0.5},
-                }
-            )
-        if asset["userdata"]["user"].lower() not in app.config.get(
-            "ADMIN_USERS", set()
-        ):
-            tiles.append(
-                {
-                    "type": "flat",
-                    "asset": "flat.png",
-                    "x1": 0,
-                    "y1": 1040,
-                    "x2": 1920,
-                    "y2": 1080,
-                    "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
-                }
-            )
-            tiles.append(
-                {
-                    "type": "markup",
-                    "asset": "default-font.ttf",
-                    "x1": 150,
-                    "y1": 1048,
-                    "x2": 1900,
-                    "y2": 1080,
-                    "config": {
-                        "font_size": 25,
-                        "fade_time": 0.5,
-                        "text": "Project by @{user} - visit {url} to share your own.".format(
-                            user=asset["userdata"]["user"],
-                            url=url_for(
-                                "index",
-                                _external=True,
-                            ),
-                        ),
-                        "color": "#dddddd",
-                    },
-                }
-            )
-        if "EXTRA_ASSETS" in app.config:
-            tiles.extend(app.config["EXTRA_ASSETS"])
-        return tiles
-
-    pages = []
-    for asset in get_all_live_assets():
-        pages.append(
-            {
-                "tiles": asset_to_tiles(asset),
-                "interaction": {"key": ""},
-                "layout_id": -1,  # Use first layout
-                "overlap": 0,
-                "auto_duration": 10,
-                "duration": 10,
-            }
-        )
-
-    log.info("There are currently {} pages visible".format(len(pages)))
-
-    for setup_id in app.config["SETUP_IDS"]:
-        log.info("[Setup {}] Getting old config".format(setup_id))
-        config = ib.get(f"setup/{setup_id}")["config"][""]
-        setup_changed = False
-
-        for schedule in config["schedules"]:
-            if schedule["name"] == "User Content":
-                log.info('[Setup {}] Found schedule "User Content"'.format(setup_id))
-
-                if pages != schedule["pages"]:
-                    schedule["pages"] = pages
-                    setup_changed = True
-
-        if setup_changed:
-            log.info("[Setup {}] Config has changed, updating".format(setup_id))
-            ib.post(
-                f"setup/{setup_id}",
-                config=tojson({"": config}),
-                mode="update",
-            )
-        else:
-            log.info(
-                "[Setup {}] Config has not changed, skipping update".format(setup_id)
-            )
-
-    r.set("last-sync", int(time.time()))
-    log.info("updated everything")
-
-    return "ok"
-
-
 @app.route("/content/list")
 def content_list():
     if not g.user:
@@ -481,12 +210,12 @@ def content_upload():
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
 
-    if g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+    if g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
         max_uploads = r.get(f"max_uploads:{g.user}")
         if max_uploads is not None:
             max_uploads = int(max_uploads)
         if not max_uploads:
-            max_uploads = app.config["MAX_UPLOADS"]
+            max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
 
@@ -561,7 +290,7 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
-    if g.user.lower() in app.config.get("ADMIN_USERS", set()):
+    if g.user.lower() in CONFIG.get("ADMIN_USERS", set()):
         update_asset_userdata(asset, state="confirmed")
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
@@ -575,12 +304,12 @@ def content_request_review(asset_id):
     )
 
     client = mqtt.Client()
-    if app.config.get("MQTT_USERNAME") and app.config.get("MQTT_PASSWORD"):
-        client.username_pw_set(app.config["MQTT_USERNAME"], app.config["MQTT_PASSWORD"])
-    client.connect(app.config["MQTT_SERVER"])
+    if CONFIG.get("MQTT_USERNAME") and CONFIG.get("MQTT_PASSWORD"):
+        client.username_pw_set(CONFIG["MQTT_USERNAME"], CONFIG["MQTT_PASSWORD"])
+    client.connect(CONFIG["MQTT_SERVER"])
     result = client.publish(
-        app.config["MQTT_TOPIC"],
-        app.config["MQTT_MESSAGE"].format(
+        CONFIG["MQTT_TOPIC"],
+        CONFIG["MQTT_MESSAGE"].format(
             user=g.user,
             asset=asset["filetype"].capitalize(),
             url=moderation_url,
@@ -602,7 +331,7 @@ def content_moderate(asset_id, sig):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
         abort(401)
 
     try:
@@ -637,7 +366,7 @@ def content_moderate_result(asset_id, sig, result):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
+    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
         abort(401)
 
     try:
@@ -731,7 +460,7 @@ def content_last():
 
     last = {}
 
-    for room in app.config["ROOMS"]:
+    for room in CONFIG["ROOMS"]:
         proofs = [
             json.loads(data)
             for data in r.zrange("last:{}".format(room["device_id"]), 0, -1)
@@ -756,26 +485,10 @@ def content_last():
                 break
 
     resp = jsonify(
-        last=[
-            [room["name"], last.get(room["name"], [])] for room in app.config["ROOMS"]
-        ]
+        last=[[room["name"], last.get(room["name"], [])] for room in CONFIG["ROOMS"]]
     )
     resp.headers["Cache-Control"] = "public, max-age=5"
     return resp
-
-
-@app.route("/check/sync")
-def check_sync():
-    if time.time() > int(r.get("last-sync")) + 1200:
-        abort(503)
-    return "ok"
-
-
-@app.route("/check/twitter")
-def check_twitter():
-    if time.time() > int(r.get("last-twitter")) + 1200:
-        abort(503)
-    return "ok"
 
 
 @app.route("/proof", methods=["POST"])
