@@ -211,11 +211,7 @@ def content_upload():
         return redirect(url_for("login"))
 
     if g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
-        max_uploads = r.get(f"max_uploads:{g.user}")
-        if max_uploads is not None:
-            max_uploads = int(max_uploads)
-        if not max_uploads:
-            max_uploads = CONFIG["MAX_UPLOADS"]
+        max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
 
