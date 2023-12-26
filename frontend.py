@@ -275,6 +275,8 @@ def authorized(access_token):
         return redirect(url_for("faq", _anchor="signup"))
 
     session["gh_login"] = github_user["login"]
+    if 'redirect_after_login' in session:
+        return redirect(session["redirect_after_login"])
     return redirect(url_for("dashboard"))
 
 
@@ -461,7 +463,8 @@ def sync():
 @app.route("/content/list")
 def content_list():
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
     assets = get_user_assets()
     random.shuffle(assets)
     return jsonify(
@@ -472,7 +475,8 @@ def content_list():
 @app.route("/content/upload", methods=["POST"])
 def content_upload():
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
 
     if g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         max_uploads = r.get(f"max_uploads:{g.user}")
@@ -540,7 +544,8 @@ def content_upload():
 @app.route("/content/review/<int:asset_id>", methods=["POST"])
 def content_request_review(asset_id):
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -592,7 +597,8 @@ def content_moderate(asset_id, sig):
     if sig != mk_sig(asset_id):
         abort(404)
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
     elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         abort(401)
 
@@ -626,7 +632,8 @@ def content_moderate_result(asset_id, sig, result):
     if sig != mk_sig(asset_id):
         abort(404)
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
     elif g.user.lower() not in app.config.get("ADMIN_USERS", set()):
         abort(401)
 
@@ -648,7 +655,8 @@ def content_moderate_result(asset_id, sig, result):
 @app.route("/content/<int:asset_id>", methods=["POST"])
 def content_update(asset_id):
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
@@ -673,7 +681,8 @@ def content_update(asset_id):
 @app.route("/content/<int:asset_id>", methods=["DELETE"])
 def content_delete(asset_id):
     if not g.user:
-        return error("Needs login")
+        session["redirect_after_login"] = request.url
+        return redirect(url_for('login'))
 
     try:
         asset = ib.get(f"asset/{asset_id}")
