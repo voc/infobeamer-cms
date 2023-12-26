@@ -8,7 +8,7 @@ from frontend import app
 from helper import get_all_live_assets
 from ib_hosted import ib
 
-log = getLogger("sync")
+log = getLogger("Syncer")
 
 log.info("Starting sync")
 
@@ -135,6 +135,6 @@ for setup_id in CONFIG["SETUP_IDS"]:
             mode="update",
         )
     else:
-        log.info("Config has not changed, skipping update")
+        slog.info("Config has not changed, skipping update")
 
 log.info("updated everything")
