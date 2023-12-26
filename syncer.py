@@ -27,9 +27,9 @@ def asset_to_tiles(asset):
                 "x2": 1920,
                 "y2": 1080,
                 "config": {
+                    "fade_time": 0.5,
                     "layer": -5,
                     "looped": True,
-                    "fade_time": 0.5,
                 },
             }
         )
@@ -82,19 +82,25 @@ def asset_to_tiles(asset):
 
 
 pages = []
+assets_visible = set()
 for asset in get_all_live_assets():
     pages.append(
         {
-            "tiles": asset_to_tiles(asset),
+            "auto_duration": 10,
+            "duration": 10,
             "interaction": {"key": ""},
             "layout_id": -1,  # Use first layout
             "overlap": 0,
-            "auto_duration": 10,
-            "duration": 10,
+            "tiles": asset_to_tiles(asset),
         }
     )
+    assets_visible.add(asset["id"])
 
-log.info("There are currently {} pages visible".format(len(pages)))
+log.info(
+    "There are currently {} pages visible with asset ids: {}".format(
+        len(pages), ", ".join([str(i) for i in sorted(assets_visible)])
+    )
+)
 
 for setup_id in CONFIG["SETUP_IDS"]:
     slog = getLogger(f"Setup {setup_id}")
@@ -105,8 +111,19 @@ for setup_id in CONFIG["SETUP_IDS"]:
     for schedule in config["schedules"]:
         if schedule["name"] == "User Content":
             slog.info('Found schedule "User Content"')
+            assets_shown = set()
 
-            if pages != schedule["pages"]:
+            for page in schedule["pages"]:
+                for tile in page["tiles"]:
+                    if tile["type"] in ("image", "rawvideo"):
+                        assets_shown.add(tile["asset"])
+
+            slog.info(
+                "schedule shows assets: {}".format(
+                    ", ".join([str(i) for i in sorted(assets_shown)])
+                )
+            )
+            if assets_visible != assets_shown:
                 schedule["pages"] = pages
                 setup_changed = True
 
