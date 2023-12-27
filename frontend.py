@@ -315,20 +315,24 @@ def content_request_review(asset_id):
 @app.route("/content/moderate/<int:asset_id>-<sig>")
 def content_moderate(asset_id, sig):
     if sig != mk_sig(asset_id):
+        app.logger.info(f'request to moderate asset {asset_id} rejected because of missing or wrong signature')
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
     elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+        app.logger.warning(f'request to moderate {asset_id} by non-admin user {g.user}')
         abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
+        app.logger.info(f'request to moderate asset {asset_id} failed because asset does not exist')
         abort(404)
 
     state = asset["userdata"].get("state", "new")
     if state == "deleted":
+        app.logger.info(f'request to moderate asset {asset_id} failed because asset was deleted by user')
         abort(404)
 
     return render_template(
@@ -350,16 +354,24 @@ def content_moderate(asset_id, sig):
 )
 def content_moderate_result(asset_id, sig, result):
     if sig != mk_sig(asset_id):
+        app.logger.info(f'request to moderate asset {asset_id} rejected because of missing or wrong signature')
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
     elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+        app.logger.warning(f'request to moderate {asset_id} by non-admin user {g.user}')
         abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
+        app.logger.info(f'request to moderate asset {asset_id} failed because asset does not exist')
+        abort(404)
+
+    state = asset["userdata"].get("state", "new")
+    if state == "deleted":
+        app.logger.info(f'request to moderate asset {asset_id} failed because asset was deleted by user')
         abort(404)
 
     if result == "confirm":
