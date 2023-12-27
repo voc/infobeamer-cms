@@ -42,6 +42,7 @@ for copy_key in (
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
     "MAX_UPLOADS",
+    "ROOMS",
     "TIME_MAX",
     "TIME_MIN",
 ):
