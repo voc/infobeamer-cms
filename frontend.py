@@ -7,7 +7,6 @@ from datetime import datetime
 from secrets import token_hex
 
 import iso8601
-import paho.mqtt.client as mqtt
 import requests
 from flask import (
     Flask,
@@ -34,6 +33,7 @@ from helper import (
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
+from voc_mqtt import send_message
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -291,20 +291,16 @@ def content_request_review(asset_id):
         "content_moderate", asset_id=asset_id, sig=mk_sig(asset_id), _external=True
     )
 
-    client = mqtt.Client()
-    if CONFIG.get("MQTT_USERNAME") and CONFIG.get("MQTT_PASSWORD"):
-        client.username_pw_set(CONFIG["MQTT_USERNAME"], CONFIG["MQTT_PASSWORD"])
-    client.connect(CONFIG["MQTT_SERVER"])
-    result = client.publish(
-        CONFIG["MQTT_TOPIC"],
-        CONFIG["MQTT_MESSAGE"].format(
-            user=g.user,
-            asset=asset["filetype"].capitalize(),
-            url=moderation_url,
-        ),
+    assert (
+        send_message(
+            "{asset} uploaded by {user}. Check it at {url}".format(
+                user=g.user,
+                asset=asset["filetype"].capitalize(),
+                url=moderation_url,
+            ),
+        )[0]
+        == 0
     )
-    client.disconnect()
-    assert result[0] == 0
 
     app.logger.info("moderation url for {} is {}".format(asset["id"], moderation_url))
 
@@ -315,24 +311,30 @@ def content_request_review(asset_id):
 @app.route("/content/moderate/<int:asset_id>-<sig>")
 def content_moderate(asset_id, sig):
     if sig != mk_sig(asset_id):
-        app.logger.info(f'request to moderate asset {asset_id} rejected because of missing or wrong signature')
+        app.logger.info(
+            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
+        )
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
     elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
-        app.logger.warning(f'request to moderate {asset_id} by non-admin user {g.user}')
+        app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
-        app.logger.info(f'request to moderate asset {asset_id} failed because asset does not exist')
+        app.logger.info(
+            f"request to moderate asset {asset_id} failed because asset does not exist"
+        )
         abort(404)
 
     state = asset["userdata"].get("state", "new")
     if state == "deleted":
-        app.logger.info(f'request to moderate asset {asset_id} failed because asset was deleted by user')
+        app.logger.info(
+            f"request to moderate asset {asset_id} failed because asset was deleted by user"
+        )
         abort(404)
 
     return render_template(
@@ -354,24 +356,30 @@ def content_moderate(asset_id, sig):
 )
 def content_moderate_result(asset_id, sig, result):
     if sig != mk_sig(asset_id):
-        app.logger.info(f'request to moderate asset {asset_id} rejected because of missing or wrong signature')
+        app.logger.info(
+            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
+        )
         abort(404)
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
     elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
-        app.logger.warning(f'request to moderate {asset_id} by non-admin user {g.user}')
+        app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
-        app.logger.info(f'request to moderate asset {asset_id} failed because asset does not exist')
+        app.logger.info(
+            f"request to moderate asset {asset_id} failed because asset does not exist"
+        )
         abort(404)
 
     state = asset["userdata"].get("state", "new")
     if state == "deleted":
-        app.logger.info(f'request to moderate asset {asset_id} failed because asset was deleted by user')
+        app.logger.info(
+            f"request to moderate asset {asset_id} failed because asset was deleted by user"
+        )
         abort(404)
 
     if result == "confirm":
