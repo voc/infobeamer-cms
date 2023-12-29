@@ -35,7 +35,10 @@ from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
 from voc_mqtt import send_message
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=CONFIG.get('STATIC_PATH', 'static'),
+)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 for copy_key in (
@@ -61,7 +64,7 @@ def cached_asset_name(asset):
         asset_id,
         "jpg" if asset["filetype"] == "image" else "mp4",
     )
-    cache_name = f"static/{filename}"
+    cache_name = os.path.join(CONFIG.get('STATIC_PATH', 'static'), filename)
 
     if not os.path.exists(cache_name):
         app.logger.info(f"fetching {asset_id} to {cache_name}")
