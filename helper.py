@@ -30,7 +30,7 @@ def get_user_assets():
 
 
 def get_all_live_assets(no_time_filter=False):
-    now = int(datetime.utcnow().timestamp())
+    now = int(datetime.now().timestamp())
     assets = ib.get("asset/list")["assets"]
     return [
         asset
@@ -51,7 +51,7 @@ def login_disabled_for_user(user=None):
     if user and user.lower() in CONFIG.get("ADMIN_USERS", set()):
         return False
 
-    now = datetime.utcnow().timestamp()
+    now = datetime.now().timestamp()
     return not (CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"])
 
 
