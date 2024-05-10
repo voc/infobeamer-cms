@@ -22,7 +22,7 @@ class RedisSessionStore(sessions.SessionInterface):
         self.redis = Redis(host=host)
 
     def open_session(self, app, request):
-        sid = request.cookies.get(app.session_cookie_name)
+        sid = request.cookies.get(app.config["SESSION_COOKIE_NAME"])
         if not sid:
             return RedisSession()
         data = self.redis.get(f"sid:{sid}")
