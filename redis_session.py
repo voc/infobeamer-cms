@@ -18,8 +18,8 @@ class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
 
 
 class RedisSessionStore(sessions.SessionInterface):
-    def __init__(self):
-        self.redis = Redis()
+    def __init__(self, host):
+        self.redis = Redis(host=host)
 
     def open_session(self, app, request):
         sid = request.cookies.get(app.session_cookie_name)

@@ -28,6 +28,9 @@ SETUP_IDS = [
 # urls send to moderators.
 URL_KEY = 'reallysecure'
 
+# Uncomment to use redis as a session store
+# REDIS_HOST = 'localhost'
+
 # Push notifications for moderation requests to an mqtt server.
 MQTT_SERVER = '127.0.0.1'
 #MQTT_USERNAME = ''

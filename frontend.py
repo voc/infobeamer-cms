@@ -39,6 +39,7 @@ app = Flask(
     __name__,
     static_folder=CONFIG.get('STATIC_PATH', 'static'),
 )
+app.secret_key = CONFIG.get('URL_KEY')
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 for copy_key in (
@@ -55,7 +56,9 @@ socket.setdefaulttimeout(3)  # for mqtt
 
 
 github = GitHub(app)
-app.session_interface = RedisSessionStore()
+
+if CONFIG.get("REDIS_HOST"):
+    app.session_interface = RedisSessionStore(host=CONFIG.get("REDIS_HOST"))
 
 
 def cached_asset_name(asset):
