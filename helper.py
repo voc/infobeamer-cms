@@ -11,6 +11,9 @@ from ib_hosted import ib
 def error(msg):
     return jsonify(error=msg), 400
 
+def user_is_admin(user) -> bool:
+    return user is not None and user.lower() in CONFIG.get("ADMIN_USERS", set())
+
 
 def get_user_assets():
     assets = ib.get("asset/list")["assets"]
@@ -48,7 +51,7 @@ def get_all_live_assets(no_time_filter=False):
 
 
 def login_disabled_for_user(user=None):
-    if user and user.lower() in CONFIG.get("ADMIN_USERS", set()):
+    if user_is_admin(user):
         return False
 
     now = datetime.now().timestamp()

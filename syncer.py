@@ -3,7 +3,7 @@ from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import get_all_live_assets
+from helper import get_all_live_assets, user_is_admin
 from ib_hosted import ib
 from voc_mqtt import send_message
 
@@ -72,7 +72,7 @@ def asset_to_tiles(asset):
                 "config": {"fade_time": 0.5},
             }
         )
-    if asset["userdata"]["user"].lower() not in CONFIG.get("ADMIN_USERS", set()):
+    if not user_is_admin(asset["userdata"]["user"]):
         tiles.append(
             {
                 "type": "flat",

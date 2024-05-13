@@ -30,6 +30,7 @@ from helper import (
     get_user_assets,
     login_disabled_for_user,
     mk_sig,
+    user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
@@ -208,7 +209,7 @@ def content_upload():
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
 
-    if g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    if not user_is_admin(g.user):
         max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
@@ -284,7 +285,7 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
-    if g.user.lower() in CONFIG.get("ADMIN_USERS", set()):
+    if user_is_admin(g.user):
         update_asset_userdata(asset, state="confirmed")
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
@@ -324,7 +325,7 @@ def content_moderate(asset_id, sig):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    elif not user_is_admin(g.user):
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
@@ -369,7 +370,7 @@ def content_moderate_result(asset_id, sig, result):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    elif not user_is_admin(g.user):
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
