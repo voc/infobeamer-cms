@@ -18,6 +18,7 @@ MarkupSafe==2.1.5
 oauth2==1.9.0.post1
 packaging==24.0
 paho-mqtt==2.1.0
+prometheus_client==0.20.0
 pyparsing==3.1.2
 redis==5.0.4
 requests==2.31.0

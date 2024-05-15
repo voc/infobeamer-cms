@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import wraps
 import shutil
 import tempfile
+from typing import Iterable, NamedTuple, Optional
 
 from flask import abort, current_app, g, jsonify, url_for
 import requests
@@ -26,44 +27,56 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def get_user_assets():
+class Asset(NamedTuple):
+    id: str
+    filetype: str
+    thumb: str
+    state: str
+    user: str
+    starts: Optional[str]
+    ends: Optional[str]
+    moderate_url: Optional[str] = None
+    moderated_by: Optional[str] = None
+
+def get_assets():
     assets = ib.get("asset/list")["assets"]
     return [
-        {
-            "id": asset["id"],
-            "filetype": asset["filetype"],
-            "thumb": asset["thumb"],
-            "state": asset["userdata"].get("state", "new"),
-            "starts": asset["userdata"].get("starts"),
-            "ends": asset["userdata"].get("ends"),
-        }
-        for asset in assets
-        if asset["userdata"].get("user") == g.user
-        and asset["userdata"].get("state") != "deleted"
+        Asset(
+            id=asset["id"],
+            filetype=asset["filetype"],
+            thumb=asset["thumb"],
+            user=asset["userdata"]["user"],
+            state=asset["userdata"].get("state", "new"),
+            starts=asset["userdata"].get("starts"),
+            ends=asset["userdata"].get("ends"),
+        ) for asset in assets if asset["userdata"].get("user") != None
+    ]
+
+def get_user_assets():
+    return [
+        a for a in get_assets()
+        if a.user == g.user and a.state != "deleted"
     ]
 
 def get_assets_awaiting_moderation():
-    assets = ib.get("asset/list")["assets"]
     return [
         asset
-        for asset in assets
-        if asset["userdata"].get("user") and asset["userdata"].get("state") == None
+        for asset in get_assets()
+        if asset.state == "new"
     ]
 
 
 def get_all_live_assets(no_time_filter=False):
     now = int(datetime.now().timestamp())
-    assets = ib.get("asset/list")["assets"]
     return [
         asset
-        for asset in assets
-        if asset["userdata"].get("state") in ("confirmed",)
-        and asset["userdata"].get("user") is not None
+        for asset in get_assets()
+        if asset.state in ("confirmed",)
         and (
             no_time_filter
             or (
-                (asset["userdata"].get("starts") or now) <= now
-                and (asset["userdata"].get("ends") or now) >= now
+                (asset.starts or now) <= now
+                and (asset.ends or now) >= now
             )
         )
     ]
@@ -81,30 +94,30 @@ def get_random(size=16):
     return "".join("%02x" % random.getrandbits(8) for i in range(size))
 
 
-def make_asset_json(assets, mod_data=False):
+def make_asset_json(assets: Iterable[Asset], mod_data=False):
     return jsonify(
         assets=[
             {
-                "user": asset["userdata"]["user"],
-                "filetype": asset["filetype"],
-                "thumb": asset["thumb"],
+                "user": asset.user,
+                "filetype": asset.filetype,
+                "thumb": asset.thumb,
                 "url": url_for("static", filename=cached_asset_name(asset)),
             } | ({
                 "moderate_url": url_for(
-                    "content_moderate", asset_id=asset["id"], _external=True
+                    "content_moderate", asset_id=asset.id, _external=True
                 ),
-                "moderated_by": asset["userdata"].get("moderated_by"),
+                "moderated_by": asset.moderated_by,
             } if mod_data else {})
             for asset in assets
         ]
     )
 
 
-def cached_asset_name(asset):
-    asset_id = asset["id"]
+def cached_asset_name(asset: Asset):
+    asset_id = asset.id
     filename = "asset-{}.{}".format(
         asset_id,
-        "jpg" if asset["filetype"] == "image" else "mp4",
+        "jpg" if asset.filetype == "image" else "mp4",
     )
     cache_name = os.path.join(CONFIG.get('STATIC_PATH', 'static'), filename)
 

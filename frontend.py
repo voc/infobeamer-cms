@@ -1,10 +1,14 @@
+from collections import defaultdict
 import random
 import socket
 from datetime import datetime
 from secrets import token_hex
+from typing import Iterable
 
 import iso8601
-import requests
+from prometheus_client.metrics_core import Metric
+from prometheus_client.core import GaugeMetricFamily, REGISTRY
+from prometheus_client.registry import Collector
 from flask import (
     Flask,
     abort,
@@ -17,6 +21,7 @@ from flask import (
     url_for,
 )
 from flask_github import GitHub
+from prometheus_client import generate_latest
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
@@ -25,6 +30,7 @@ from helper import (
     cached_asset_name,
     error,
     get_all_live_assets,
+    get_assets,
     get_assets_awaiting_moderation,
     get_random,
     get_user_assets,
@@ -55,6 +61,19 @@ for copy_key in (
 
 socket.setdefaulttimeout(3)  # for mqtt
 
+
+class SubmissionsCollector(Collector):
+    def collect(self) -> Iterable[Metric]:
+        counts = defaultdict(int)
+        for a in get_assets():
+            counts[a.state] += 1
+        g = GaugeMetricFamily("submissions", "Counts of content submissions", labels=["state"])
+        for s, c in counts.items():
+            g.add_metric([s], c)
+        yield g
+
+
+REGISTRY.register(SubmissionsCollector())
 
 github = GitHub(app)
 
@@ -429,6 +448,11 @@ def content_live():
     resp = make_asset_json(assets, mod_data=g.user_is_admin)
     resp.headers["Cache-Control"] = "public, max-age=30"
     return resp
+
+
+@app.route("/metrics")
+def metrics():
+    return generate_latest()
 
 
 # @app.route("/content/last")
