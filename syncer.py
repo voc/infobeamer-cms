@@ -3,7 +3,7 @@ from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import get_all_live_assets, user_is_admin
+from helper import State, get_all_live_assets, user_is_admin
 from ib_hosted import ib
 from voc_mqtt import send_message
 
@@ -17,7 +17,7 @@ if datetime.now().minute == 7:
     for asset in ib.get("asset/list")["assets"]:
         if asset["userdata"].get("user") is not None and asset["userdata"].get(
             "state"
-        ) not in ("confirmed", "rejected", "deleted"):
+        ) not in (State.CONFIRMED, State.REJECTED, State.DELETED):
             state = asset["userdata"]["state"]
             if state not in asset_states:
                 asset_states[state] = 0

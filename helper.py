@@ -1,3 +1,4 @@
+import enum
 import os
 import random
 from datetime import datetime
@@ -27,11 +28,17 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+class State(enum.StrEnum):
+    NEW = "new"
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
+    DELETED = "deleted"
+
 class Asset(NamedTuple):
     id: str
     filetype: str
     thumb: str
-    state: str
+    state: State
     user: str
     starts: Optional[str]
     ends: Optional[str]
@@ -46,7 +53,7 @@ def get_assets():
             filetype=asset["filetype"],
             thumb=asset["thumb"],
             user=asset["userdata"]["user"],
-            state=asset["userdata"].get("state", "new"),
+            state=State(asset["userdata"].get("state", "new")),
             starts=asset["userdata"].get("starts"),
             ends=asset["userdata"].get("ends"),
         ) for asset in assets if asset["userdata"].get("user") != None
@@ -55,14 +62,14 @@ def get_assets():
 def get_user_assets():
     return [
         a for a in get_assets()
-        if a.user == g.user and a.state != "deleted"
+        if a.user == g.user and a.state != State.DELETED
     ]
 
 def get_assets_awaiting_moderation():
     return [
         asset
         for asset in get_assets()
-        if asset.state == "new"
+        if asset.state == State.NEW
     ]
 
 
@@ -71,7 +78,7 @@ def get_all_live_assets(no_time_filter=False):
     return [
         asset
         for asset in get_assets()
-        if asset.state in ("confirmed",)
+        if asset.state in (State.CONFIRMED,)
         and (
             no_time_filter
             or (

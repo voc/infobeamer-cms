@@ -26,6 +26,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
 from helper import (
+    State,
     admin_required,
     cached_asset_name,
     error,
@@ -68,6 +69,10 @@ class SubmissionsCollector(Collector):
         for a in get_assets():
             counts[a.state] += 1
         g = GaugeMetricFamily("submissions", "Counts of content submissions", labels=["state"])
+        for state in State:
+            # Add any states that we know about but have 0 assets in them
+            if state.value not in counts.keys():
+                counts[state.value] = 0
         for s, c in counts.items():
             g.add_metric([s], c)
         yield g
@@ -287,7 +292,7 @@ def content_request_review(asset_id):
         return error("Cannot review")
 
     if g.user_is_admin:
-        update_asset_userdata(asset, state="confirmed")
+        update_asset_userdata(asset, state=State.CONFIRMED)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
                 asset["id"], g.user
@@ -335,7 +340,7 @@ def content_moderate(asset_id):
         abort(404)
 
     state = asset["userdata"].get("state", "new")
-    if state == "deleted":
+    if state == State.DELETED:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset was deleted by user"
         )
@@ -375,7 +380,7 @@ def content_moderate_result(asset_id, result):
         abort(404)
 
     state = asset["userdata"].get("state", "new")
-    if state == "deleted":
+    if state == State.DELETED:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset was deleted by user"
         )
@@ -383,10 +388,10 @@ def content_moderate_result(asset_id, result):
 
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
-        update_asset_userdata(asset, state="confirmed", moderated_by=g.user)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
-        update_asset_userdata(asset, state="rejected", moderated_by=g.user)
+        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.user)
 
     return jsonify(ok=True)
 
@@ -432,7 +437,7 @@ def content_delete(asset_id):
         return error("Cannot delete")
 
     try:
-        update_asset_userdata(asset, state="deleted")
+        update_asset_userdata(asset, state=State.DELETED)
     except Exception as e:
         app.logger.error(f"content_delete({asset_id}) {repr(e)}")
         return error("Cannot delete")
