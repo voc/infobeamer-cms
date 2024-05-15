@@ -39,12 +39,12 @@ Vue.component('moderate', {
     needs_moderation: true,
     completed: false,
   }),
-  props: ['sig', 'asset'],
+  props: ['asset'],
   methods: {
     async moderate(result) {
       this.needs_moderation = false
       await Vue.nextTick()
-      await Vue.http.post(`/content/moderate/${this.asset.id}-${this.sig}/${result}`)
+      await Vue.http.post(`/content/moderate/${this.asset.id}/${result}`)
       this.completed = true
     },
   },

@@ -1,8 +1,5 @@
-import os
 import random
-import shutil
 import socket
-import tempfile
 from datetime import datetime
 from secrets import token_hex
 
@@ -24,12 +21,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
 from helper import (
+    admin_required,
+    cached_asset_name,
     error,
     get_all_live_assets,
+    get_assets_awaiting_moderation,
     get_random,
     get_user_assets,
     login_disabled_for_user,
-    mk_sig,
+    make_asset_json,
     user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
@@ -62,31 +62,10 @@ if CONFIG.get("REDIS_HOST"):
     app.session_interface = RedisSessionStore(host=CONFIG.get("REDIS_HOST"))
 
 
-def cached_asset_name(asset):
-    asset_id = asset["id"]
-    filename = "asset-{}.{}".format(
-        asset_id,
-        "jpg" if asset["filetype"] == "image" else "mp4",
-    )
-    cache_name = os.path.join(CONFIG.get('STATIC_PATH', 'static'), filename)
-
-    if not os.path.exists(cache_name):
-        app.logger.info(f"fetching {asset_id} to {cache_name}")
-        dl = ib.get(f"asset/{asset_id}/download")
-        r = requests.get(dl["download_url"], stream=True, timeout=5)
-        r.raise_for_status()
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            shutil.copyfileobj(r.raw, f)
-            shutil.move(f.name, cache_name)
-            os.chmod(cache_name, 0o664)
-        del r
-
-    return filename
-
-
 @app.before_request
 def before_request():
     user = session.get("gh_login")
+    g.user_is_admin = user_is_admin(user)
 
     if login_disabled_for_user(user):
         g.user = None
@@ -114,8 +93,6 @@ def authorized(access_token):
 
     if login_disabled_for_user(github_user["login"]):
         return render_template("time_error.jinja")
-
-    # app.logger.debug(github_user)
 
     age = datetime.utcnow() - iso8601.parse_date(github_user["created_at"]).replace(
         tzinfo=None
@@ -202,6 +179,11 @@ def content_list():
         assets=assets,
     )
 
+@app.route("/content/awaiting_moderation")
+@admin_required
+def content_awaiting_moderation():
+    return make_asset_json(get_assets_awaiting_moderation(), mod_data=True)
+
 
 @app.route("/content/upload", methods=["POST"])
 def content_upload():
@@ -209,7 +191,7 @@ def content_upload():
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
 
-    if not user_is_admin(g.user):
+    if not g.user_is_admin:
         max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
@@ -285,7 +267,7 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
-    if user_is_admin(g.user):
+    if g.user_is_admin:
         update_asset_userdata(asset, state="confirmed")
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
@@ -295,7 +277,7 @@ def content_request_review(asset_id):
         return jsonify(ok=True)
 
     moderation_url = url_for(
-        "content_moderate", asset_id=asset_id, sig=mk_sig(asset_id), _external=True
+        "content_moderate", asset_id=asset_id, _external=True
     )
 
     assert (
@@ -315,17 +297,13 @@ def content_request_review(asset_id):
     return jsonify(ok=True)
 
 
-@app.route("/content/moderate/<int:asset_id>-<sig>")
-def content_moderate(asset_id, sig):
-    if sig != mk_sig(asset_id):
-        app.logger.info(
-            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
-        )
-        abort(404)
+@app.route("/content/moderate/<int:asset_id>")
+@admin_required
+def content_moderate(asset_id):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif not user_is_admin(g.user):
+    elif not g.user_is_admin:
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
@@ -353,24 +331,19 @@ def content_moderate(asset_id, sig):
             "url": url_for("static", filename=cached_asset_name(asset)),
             "state": state,
         },
-        sig=mk_sig(asset_id),
     )
 
 
 @app.route(
-    "/content/moderate/<int:asset_id>-<sig>/<any(confirm,reject):result>",
+    "/content/moderate/<int:asset_id>/<any(confirm,reject):result>",
     methods=["POST"],
 )
-def content_moderate_result(asset_id, sig, result):
-    if sig != mk_sig(asset_id):
-        app.logger.info(
-            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
-        )
-        abort(404)
+@admin_required
+def content_moderate_result(asset_id, result):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif not user_is_admin(g.user):
+    elif not g.user_is_admin:
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
@@ -391,10 +364,10 @@ def content_moderate_result(asset_id, sig, result):
 
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
-        update_asset_userdata(asset, state="confirmed")
+        update_asset_userdata(asset, state="confirmed", moderated_by=g.user)
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
-        update_asset_userdata(asset, state="rejected")
+        update_asset_userdata(asset, state="rejected", moderated_by=g.user)
 
     return jsonify(ok=True)
 
@@ -453,17 +426,7 @@ def content_live():
     no_time_filter = request.values.get("all")
     assets = get_all_live_assets(no_time_filter=no_time_filter)
     random.shuffle(assets)
-    resp = jsonify(
-        assets=[
-            {
-                "user": asset["userdata"]["user"],
-                "filetype": asset["filetype"],
-                "thumb": asset["thumb"],
-                "url": url_for("static", filename=cached_asset_name(asset)),
-            }
-            for asset in assets
-        ]
-    )
+    resp = make_asset_json(assets, mod_data=g.user_is_admin)
     resp.headers["Cache-Control"] = "public, max-age=30"
     return resp
 

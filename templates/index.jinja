@@ -5,9 +5,13 @@
   <h1>Share your projects on the streams and during breaks.</h1>
   <p>
     You can upload short videos (max 10 seconds) or images to show your project, installation, talk, meeting or anything else
-    that might be interesting to other visitors. 
+    that might be interesting to other visitors.
   </p>
-  <h1>Projects submitted</h1>
+  {% if g.user_is_admin %}
+  <h2>Awaiting Moderation</h2>
+  <list-unmoderated></list-unmoderated>
+  {% endif %}
+  <h2>All Projects</h1>
   <hr/>
   <list-active></list-active>
 {% endblock %}
