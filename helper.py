@@ -45,19 +45,37 @@ class Asset(NamedTuple):
     moderate_url: Optional[str] = None
     moderated_by: Optional[str] = None
 
+    def to_dict(self, mod_data=False):
+        return {
+            "user": self.user,
+            "filetype": self.filetype,
+            "thumb": self.thumb,
+            "url": url_for("static", filename=cached_asset_name(self)),
+        } | ({
+            "moderate_url": url_for(
+                "content_moderate", asset_id=self.id, _external=True
+            ),
+            "moderated_by": self.moderated_by,
+        } if mod_data else {})
+
+
+def parse_asset(asset):
+    return Asset(
+        id=asset["id"],
+        filetype=asset["filetype"],
+        thumb=asset["thumb"],
+        user=asset["userdata"]["user"],
+        state=State(asset["userdata"].get("state", "new")),
+        starts=asset["userdata"].get("starts"),
+        ends=asset["userdata"].get("ends"),
+    )
+
+def get_asset(id):
+    return parse_asset(ib.get(f"asset/{id}"))
+
 def get_assets():
     assets = ib.get("asset/list")["assets"]
-    return [
-        Asset(
-            id=asset["id"],
-            filetype=asset["filetype"],
-            thumb=asset["thumb"],
-            user=asset["userdata"]["user"],
-            state=State(asset["userdata"].get("state", "new")),
-            starts=asset["userdata"].get("starts"),
-            ends=asset["userdata"].get("ends"),
-        ) for asset in assets if asset["userdata"].get("user") != None
-    ]
+    return [ parse_asset(asset) for asset in assets if asset["userdata"].get("user") != None]
 
 def get_user_assets():
     return [
@@ -99,25 +117,6 @@ def login_disabled_for_user(user=None):
 
 def get_random(size=16):
     return "".join("%02x" % random.getrandbits(8) for i in range(size))
-
-
-def make_asset_json(assets: Iterable[Asset], mod_data=False):
-    return jsonify(
-        assets=[
-            {
-                "user": asset.user,
-                "filetype": asset.filetype,
-                "thumb": asset.thumb,
-                "url": url_for("static", filename=cached_asset_name(asset)),
-            } | ({
-                "moderate_url": url_for(
-                    "content_moderate", asset_id=asset.id, _external=True
-                ),
-                "moderated_by": asset.moderated_by,
-            } if mod_data else {})
-            for asset in assets
-        ]
-    )
 
 
 def cached_asset_name(asset: Asset):

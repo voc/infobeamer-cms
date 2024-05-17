@@ -82,7 +82,7 @@ Vue.component('list-active', {
   }),
   async created() {
     const r = await Vue.http.get('content/live')
-    this.assets = r.data.assets
+    this.assets = r.data
   }
 })
 
@@ -106,7 +106,7 @@ Vue.component('list-unmoderated', {
   }),
   async created() {
     const r = await Vue.http.get('content/awaiting_moderation')
-    this.assets = r.data.assets
+    this.assets = r.data
   }
 })
 

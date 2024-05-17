@@ -31,12 +31,12 @@ from helper import (
     cached_asset_name,
     error,
     get_all_live_assets,
+    get_asset,
     get_assets,
     get_assets_awaiting_moderation,
     get_random,
     get_user_assets,
     login_disabled_for_user,
-    make_asset_json,
     user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
@@ -219,7 +219,7 @@ def content_list():
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    assets = get_user_assets()
+    assets = [a._asdict() for a in get_user_assets()]
     random.shuffle(assets)
     return jsonify(
         assets=assets,
@@ -228,7 +228,7 @@ def content_list():
 @app.route("/content/awaiting_moderation")
 @admin_required
 def content_awaiting_moderation():
-    return make_asset_json(get_assets_awaiting_moderation(), mod_data=True)
+    return jsonify([a.to_dict(mod_data=True) for a in get_assets_awaiting_moderation()])
 
 
 @app.route("/content/upload", methods=["POST"])
@@ -354,15 +354,14 @@ def content_moderate(asset_id):
         abort(401)
 
     try:
-        asset = ib.get(f"asset/{asset_id}")
+        asset = get_asset(asset_id)
     except Exception:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset does not exist"
         )
         abort(404)
 
-    state = asset["userdata"].get("state", "new")
-    if state == State.DELETED:
+    if asset.state == State.DELETED:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset was deleted by user"
         )
@@ -370,13 +369,7 @@ def content_moderate(asset_id):
 
     return render_template(
         "moderate.jinja",
-        asset={
-            "id": asset["id"],
-            "user": asset["userdata"]["user"],
-            "filetype": asset["filetype"],
-            "url": url_for("static", filename=cached_asset_name(asset)),
-            "state": state,
-        },
+        asset=asset.to_dict()
     )
 
 
@@ -472,7 +465,7 @@ def content_live():
     no_time_filter = request.values.get("all")
     assets = get_all_live_assets(no_time_filter=no_time_filter)
     random.shuffle(assets)
-    resp = make_asset_json(assets, mod_data=g.user_is_admin)
+    resp = jsonify([a.to_dict(mod_data=g.user_is_admin) for a in assets])
     resp.headers["Cache-Control"] = "public, max-age=30"
     return resp
 
