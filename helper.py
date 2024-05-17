@@ -47,6 +47,7 @@ class Asset(NamedTuple):
 
     def to_dict(self, mod_data=False):
         return {
+            "id": self.id,
             "user": self.user,
             "filetype": self.filetype,
             "thumb": self.thumb,
