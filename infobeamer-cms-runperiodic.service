@@ -8,4 +8,4 @@ Requires=infobeamer-cms.service
 User=infobeamer-cms
 Group=infobeamer-cms
 WorkingDirectory=/opt/infobeamer-cms
-ExecStart=curl -s -H "Host: infobeamer-cms.example.org" http://127.0.0.1:8000/sync
+ExecStart=/opt/infobeamer-cms/.venv/bin/python syncer.py
