@@ -369,7 +369,7 @@ def content_moderate(asset_id):
 
     return render_template(
         "moderate.jinja",
-        asset=asset.to_dict()
+        asset=asset.to_dict(mod_data=True)
     )
 
 

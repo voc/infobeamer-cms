@@ -40,8 +40,8 @@ class Asset(NamedTuple):
     thumb: str
     state: State
     user: str
-    starts: Optional[str]
-    ends: Optional[str]
+    starts: Optional[str] = None
+    ends: Optional[str] = None
     moderate_url: Optional[str] = None
     moderated_by: Optional[str] = None
 
@@ -57,6 +57,9 @@ class Asset(NamedTuple):
                 "content_moderate", asset_id=self.id, _external=True
             ),
             "moderated_by": self.moderated_by,
+            "state": self.state,
+            "starts": self.starts,
+            "ends": self.ends
         } if mod_data else {})
 
 
