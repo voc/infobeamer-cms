@@ -50,9 +50,10 @@ Vue.component('moderate', {
       this.completed = true
     },
     epoch2String(epoch) {
-      if (!epoch) return "None set"
+      if (!epoch) return "None set";
       let date = new Date(0);
-      return date.setUTCSeconds(epoch).toLocaleString();
+      date.setUTCSeconds(epoch);
+      return date.toLocaleString();
     }
   },
 })
