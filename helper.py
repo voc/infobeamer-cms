@@ -40,8 +40,8 @@ class Asset(NamedTuple):
     thumb: str
     state: State
     user: str
-    starts: Optional[str] = None
-    ends: Optional[str] = None
+    starts: Optional[int] = None
+    ends: Optional[int] = None
     moderate_url: Optional[str] = None
     moderated_by: Optional[str] = None
 
@@ -62,6 +62,8 @@ class Asset(NamedTuple):
             "ends": self.ends
         } if mod_data else {})
 
+def to_int(num):
+    return num if isinstance(num, int) else int(num) if (isinstance(num,str) and num.isdigit()) else None
 
 def parse_asset(asset):
     return Asset(
@@ -70,8 +72,8 @@ def parse_asset(asset):
         thumb=asset["thumb"],
         user=asset["userdata"]["user"],
         state=State(asset["userdata"].get("state", "new")),
-        starts=asset["userdata"].get("starts"),
-        ends=asset["userdata"].get("ends"),
+        starts=to_int(asset["userdata"].get("starts")),
+        ends=to_int(asset["userdata"].get("ends"))
     )
 
 def get_asset(id):
