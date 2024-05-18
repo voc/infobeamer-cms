@@ -41,7 +41,12 @@ systemctl restart nginx
 # adapt those settings
 cp settings.example.toml settings.toml
 
+
 # start via systemd
+# make a user that can't logic with no home dir or shell.
+useradd -M infobeamer-cms
+usermod -L infobeamer-cms
+usermod -s /bin/false infobeamer-cms
 cp infobeamer-cms.service /etc/systemd/system/
 cp infobeamer-cms-runperiodic.service /etc/systemd/system/
 cp infobeamer-cms-runperiodic.timer /etc/systemd/system/

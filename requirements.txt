@@ -27,3 +27,4 @@ Werkzeug==3.0.3
 wrapt==1.16.0
 zope.event==5.0
 zope.interface==6.3
+rtoml==0.10.0

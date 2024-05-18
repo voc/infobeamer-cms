@@ -3,7 +3,7 @@ from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import State, get_all_live_assets, user_is_admin
+from helper import Asset, State, get_all_live_assets, user_is_admin
 from ib_hosted import ib
 from voc_mqtt import send_message
 
@@ -40,15 +40,15 @@ if datetime.now().minute == 7:
         )
 
 
-def asset_to_tiles(asset):
-    log.debug("adding {} to Page".format(asset["id"]))
+def asset_to_tiles(asset: Asset):
+    log.debug("adding {} to Page".format(asset.id))
 
     tiles = []
-    if asset["filetype"] == "video":
+    if asset.filetype == "video":
         tiles.append(
             {
                 "type": "rawvideo",
-                "asset": asset["id"],
+                "asset": asset.id,
                 "x1": 0,
                 "y1": 0,
                 "x2": 1920,
@@ -64,7 +64,7 @@ def asset_to_tiles(asset):
         tiles.append(
             {
                 "type": "image",
-                "asset": asset["id"],
+                "asset": asset.id,
                 "x1": 0,
                 "y1": 0,
                 "x2": 1920,
@@ -72,7 +72,7 @@ def asset_to_tiles(asset):
                 "config": {"fade_time": 0.5},
             }
         )
-    if not user_is_admin(asset["userdata"]["user"]):
+    if not user_is_admin(asset.user):
         tiles.append(
             {
                 "type": "flat",
@@ -96,7 +96,7 @@ def asset_to_tiles(asset):
                     "font_size": 25,
                     "fade_time": 0.5,
                     "text": "Project by @{user} - visit {url} to share your own.".format(
-                        user=asset["userdata"]["user"],
+                        user=asset.user,
                         url=CONFIG["DOMAIN"],
                     ),
                     "color": "#dddddd",
@@ -121,7 +121,7 @@ for asset in get_all_live_assets():
             "tiles": asset_to_tiles(asset),
         }
     )
-    assets_visible.add(asset["id"])
+    assets_visible.add(asset.id)
 
 log.info(
     "There are currently {} pages visible with asset ids: {}".format(
