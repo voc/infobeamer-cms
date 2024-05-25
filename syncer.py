@@ -7,6 +7,8 @@ from helper import Asset, State, get_all_live_assets, user_is_admin
 from ib_hosted import ib
 from voc_mqtt import send_message
 
+FADE_TIME = 0.5
+SLIDE_TIME = 10
 log = getLogger("Syncer")
 
 log.info("Starting sync")
@@ -54,7 +56,7 @@ def asset_to_tiles(asset: Asset):
                 "x2": 1920,
                 "y2": 1080,
                 "config": {
-                    "fade_time": 0.5,
+                    "fade_time": FADE_TIME,
                     "layer": -5,
                     "looped": True,
                 },
@@ -69,7 +71,7 @@ def asset_to_tiles(asset: Asset):
                 "y1": 0,
                 "x2": 1920,
                 "y2": 1080,
-                "config": {"fade_time": 0.5},
+                "config": {"fade_time": FADE_TIME},
             }
         )
     if not user_is_admin(asset.user):
@@ -81,7 +83,7 @@ def asset_to_tiles(asset: Asset):
                 "y1": 1040,
                 "x2": 1920,
                 "y2": 1080,
-                "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
+                "config": {"color": "#000000", "alpha": 230, "fade_time": FADE_TIME},
             }
         )
         tiles.append(
@@ -94,7 +96,7 @@ def asset_to_tiles(asset: Asset):
                 "y2": 1080,
                 "config": {
                     "font_size": 25,
-                    "fade_time": 0.5,
+                    "fade_time": FADE_TIME,
                     "text": "Project by @{user} - visit {url} to share your own.".format(
                         user=asset.user,
                         url=CONFIG["DOMAIN"],
@@ -113,8 +115,8 @@ assets_visible = set()
 for asset in get_all_live_assets():
     pages.append(
         {
-            "auto_duration": 10,
-            "duration": 10,
+            "auto_duration": SLIDE_TIME,
+            "duration": SLIDE_TIME - (FADE_TIME*2), # Because it seems like the fade time is exclusive of the 10 sec, so videos play for 11 secs.
             "interaction": {"key": ""},
             "layout_id": -1,  # Use first layout
             "overlap": 0,
