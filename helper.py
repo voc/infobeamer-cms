@@ -33,6 +33,7 @@ class State(enum.StrEnum):
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
     DELETED = "deleted"
+    REVIEW = "review"
 
 class Asset(NamedTuple):
     id: str
