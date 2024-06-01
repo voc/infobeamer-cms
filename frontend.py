@@ -41,7 +41,6 @@ from helper import (
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
-from voc_mqtt import send_message
 
 app = Flask(
     __name__,
@@ -324,17 +323,6 @@ def content_request_review(asset_id):
 
     moderation_url = url_for(
         "content_moderate", asset_id=asset_id, _external=True
-    )
-
-    assert (
-        send_message(
-            "{asset} uploaded by {user}. Check it at {url}".format(
-                user=g.user,
-                asset=asset["filetype"].capitalize(),
-                url=moderation_url,
-            ),
-        )[0]
-        == 0
     )
 
     app.logger.info("moderation url for {} is {}".format(asset["id"], moderation_url))
