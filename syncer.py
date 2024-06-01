@@ -1,45 +1,15 @@
-from datetime import datetime
 from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import Asset, State, get_all_live_assets, user_is_admin
+from helper import Asset, get_all_live_assets, user_is_admin
 from ib_hosted import ib
-from voc_mqtt import send_message
 
 FADE_TIME = 0.5
 SLIDE_TIME = 10
 log = getLogger("Syncer")
 
 log.info("Starting sync")
-
-if datetime.now().minute == 7:
-    log.info("Time is :00, broadcasting state")
-    asset_states = {}
-    for asset in ib.get("asset/list")["assets"]:
-        if asset["userdata"].get("user") is not None and asset["userdata"].get(
-            "state"
-        ) not in (State.CONFIRMED, State.REJECTED, State.DELETED):
-            state = asset["userdata"]["state"]
-            if state not in asset_states:
-                asset_states[state] = 0
-            asset_states[state] += 1
-            log.info(
-                "asset {} is in state {}, uploaded by {}".format(
-                    asset["id"], state, asset["userdata"]["user"]
-                )
-            )
-
-    msg = []
-    for state, count in sorted(asset_states.items()):
-        msg.append("{} assets in state {}.".format(count, state))
-
-    if msg:
-        msg.append("Check the logs for more information")
-        send_message(
-            " ".join(msg),
-            level="WARN",
-        )
 
 
 def asset_to_tiles(asset: Asset):
