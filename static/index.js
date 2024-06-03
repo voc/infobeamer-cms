@@ -7,7 +7,7 @@ Vue.component('asset-preview', {
         Project by <a :href='"https://github.com/" + asset.user'>{{asset.user}}</a>
       </div>
       <div class='panel-body'>
-        <a :href='asset.url'>
+        <a :href='asset.url' target="_blank">
           <img class='img-responsive' :src='asset.thumb + "?size=328&crop=none"'>
         </a>
         <p v-if='asset.moderated_by'>Moderated by: {{asset.moderated_by}}</p>
