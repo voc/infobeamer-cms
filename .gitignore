@@ -1,3 +1,4 @@
 env/
 static/asset-*
 settings.toml
+__pycache__

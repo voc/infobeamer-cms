@@ -1,13 +1,14 @@
-import os
+from collections import defaultdict
 import random
-import shutil
 import socket
-import tempfile
 from datetime import datetime
 from secrets import token_hex
+from typing import Iterable
 
 import iso8601
-import requests
+from prometheus_client.metrics_core import Metric
+from prometheus_client.core import GaugeMetricFamily, REGISTRY
+from prometheus_client.registry import Collector
 from flask import (
     Flask,
     abort,
@@ -20,25 +21,32 @@ from flask import (
     url_for,
 )
 from flask_github import GitHub
+from prometheus_client import generate_latest
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
 from helper import (
+    State,
+    admin_required,
+    cached_asset_name,
     error,
     get_all_live_assets,
+    get_asset,
+    get_assets,
+    get_assets_awaiting_moderation,
     get_random,
     get_user_assets,
     login_disabled_for_user,
-    mk_sig,
+    user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from redis_session import RedisSessionStore
-from voc_mqtt import send_message
 
 app = Flask(
     __name__,
     static_folder=CONFIG.get('STATIC_PATH', 'static'),
 )
+app.secret_key = CONFIG.get('URL_KEY')
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 for copy_key in (
@@ -54,35 +62,55 @@ for copy_key in (
 socket.setdefaulttimeout(3)  # for mqtt
 
 
+class SubmissionsCollector(Collector):
+    def collect(self) -> Iterable[Metric]:
+        counts = defaultdict(int)
+        for a in get_assets():
+            counts[a.state] += 1
+        g = GaugeMetricFamily("submissions", "Counts of content submissions", labels=["state"])
+        for state in State:
+            # Add any states that we know about but have 0 assets in them
+            if state.value not in counts.keys():
+                counts[state.value] = 0
+        for s, c in counts.items():
+            g.add_metric([s], c)
+        yield g
+
+class InfobeamerCollector(Collector):
+    """Prometheus collector for general infobeamer metrics available from the hosted API."""
+    last_got = 0
+    devices = []
+    def collect(self) -> Iterable[Metric]:
+        if (self.last_got + 10) < datetime.now().timestamp():
+            self.devices = ib.get("device/list")["devices"]
+            self.last_got = datetime.now().timestamp()
+        yield GaugeMetricFamily("devices", "Infobeamer devices", len(self.devices))
+        yield GaugeMetricFamily("devices_online", "Infobeamer devices online", len([d for d in self.devices if d["is_online"]]))
+        m = GaugeMetricFamily("device_model", "Infobeamer device models", labels=["model"])
+        counts = defaultdict(int)
+        for d in self.devices:
+            if d.get("hw"):
+                counts[d["hw"]["model"]] += 1
+            else:
+                counts["unknown"] += 1
+        for model, count in counts.items():
+            m.add_metric([model], count)
+        yield m
+
+
+REGISTRY.register(SubmissionsCollector())
+REGISTRY.register(InfobeamerCollector())
+
 github = GitHub(app)
-app.session_interface = RedisSessionStore()
 
-
-def cached_asset_name(asset):
-    asset_id = asset["id"]
-    filename = "asset-{}.{}".format(
-        asset_id,
-        "jpg" if asset["filetype"] == "image" else "mp4",
-    )
-    cache_name = os.path.join(CONFIG.get('STATIC_PATH', 'static'), filename)
-
-    if not os.path.exists(cache_name):
-        app.logger.info(f"fetching {asset_id} to {cache_name}")
-        dl = ib.get(f"asset/{asset_id}/download")
-        r = requests.get(dl["download_url"], stream=True, timeout=5)
-        r.raise_for_status()
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            shutil.copyfileobj(r.raw, f)
-            shutil.move(f.name, cache_name)
-            os.chmod(cache_name, 0o664)
-        del r
-
-    return filename
+if CONFIG.get("REDIS_HOST"):
+    app.session_interface = RedisSessionStore(host=CONFIG.get("REDIS_HOST"))
 
 
 @app.before_request
 def before_request():
     user = session.get("gh_login")
+    g.user_is_admin = user_is_admin(user)
 
     if login_disabled_for_user(user):
         g.user = None
@@ -110,8 +138,6 @@ def authorized(access_token):
 
     if login_disabled_for_user(github_user["login"]):
         return render_template("time_error.jinja")
-
-    # app.logger.debug(github_user)
 
     age = datetime.utcnow() - iso8601.parse_date(github_user["created_at"]).replace(
         tzinfo=None
@@ -192,11 +218,16 @@ def content_list():
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    assets = get_user_assets()
+    assets = [a._asdict() for a in get_user_assets()]
     random.shuffle(assets)
     return jsonify(
         assets=assets,
     )
+
+@app.route("/content/awaiting_moderation")
+@admin_required
+def content_awaiting_moderation():
+    return jsonify([a.to_dict(mod_data=True) for a in get_assets_awaiting_moderation()])
 
 
 @app.route("/content/upload", methods=["POST"])
@@ -205,7 +236,7 @@ def content_upload():
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
 
-    if g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    if not g.user_is_admin:
         max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
@@ -281,8 +312,8 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
-    if g.user.lower() in CONFIG.get("ADMIN_USERS", set()):
-        update_asset_userdata(asset, state="confirmed")
+    if g.user_is_admin:
+        update_asset_userdata(asset, state=State.CONFIRMED)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
                 asset["id"], g.user
@@ -291,18 +322,7 @@ def content_request_review(asset_id):
         return jsonify(ok=True)
 
     moderation_url = url_for(
-        "content_moderate", asset_id=asset_id, sig=mk_sig(asset_id), _external=True
-    )
-
-    assert (
-        send_message(
-            "{asset} uploaded by {user}. Check it at {url}".format(
-                user=g.user,
-                asset=asset["filetype"].capitalize(),
-                url=moderation_url,
-            ),
-        )[0]
-        == 0
+        "content_moderate", asset_id=asset_id, _external=True
     )
 
     app.logger.info("moderation url for {} is {}".format(asset["id"], moderation_url))
@@ -311,30 +331,25 @@ def content_request_review(asset_id):
     return jsonify(ok=True)
 
 
-@app.route("/content/moderate/<int:asset_id>-<sig>")
-def content_moderate(asset_id, sig):
-    if sig != mk_sig(asset_id):
-        app.logger.info(
-            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
-        )
-        abort(404)
+@app.route("/content/moderate/<int:asset_id>")
+@admin_required
+def content_moderate(asset_id):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    elif not g.user_is_admin:
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
     try:
-        asset = ib.get(f"asset/{asset_id}")
+        asset = get_asset(asset_id)
     except Exception:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset does not exist"
         )
         abort(404)
 
-    state = asset["userdata"].get("state", "new")
-    if state == "deleted":
+    if asset.state == State.DELETED:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset was deleted by user"
         )
@@ -342,31 +357,20 @@ def content_moderate(asset_id, sig):
 
     return render_template(
         "moderate.jinja",
-        asset={
-            "id": asset["id"],
-            "user": asset["userdata"]["user"],
-            "filetype": asset["filetype"],
-            "url": url_for("static", filename=cached_asset_name(asset)),
-            "state": state,
-        },
-        sig=mk_sig(asset_id),
+        asset=asset.to_dict(mod_data=True)
     )
 
 
 @app.route(
-    "/content/moderate/<int:asset_id>-<sig>/<any(confirm,reject):result>",
+    "/content/moderate/<int:asset_id>/<any(confirm,reject):result>",
     methods=["POST"],
 )
-def content_moderate_result(asset_id, sig, result):
-    if sig != mk_sig(asset_id):
-        app.logger.info(
-            f"request to moderate asset {asset_id} rejected because of missing or wrong signature"
-        )
-        abort(404)
+@admin_required
+def content_moderate_result(asset_id, result):
     if not g.user:
         session["redirect_after_login"] = request.url
         return redirect(url_for("login"))
-    elif g.user.lower() not in CONFIG.get("ADMIN_USERS", set()):
+    elif not g.user_is_admin:
         app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
         abort(401)
 
@@ -379,7 +383,7 @@ def content_moderate_result(asset_id, sig, result):
         abort(404)
 
     state = asset["userdata"].get("state", "new")
-    if state == "deleted":
+    if state == State.DELETED:
         app.logger.info(
             f"request to moderate asset {asset_id} failed because asset was deleted by user"
         )
@@ -387,10 +391,10 @@ def content_moderate_result(asset_id, sig, result):
 
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
-        update_asset_userdata(asset, state="confirmed")
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
-        update_asset_userdata(asset, state="rejected")
+        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.user)
 
     return jsonify(ok=True)
 
@@ -436,7 +440,7 @@ def content_delete(asset_id):
         return error("Cannot delete")
 
     try:
-        update_asset_userdata(asset, state="deleted")
+        update_asset_userdata(asset, state=State.DELETED)
     except Exception as e:
         app.logger.error(f"content_delete({asset_id}) {repr(e)}")
         return error("Cannot delete")
@@ -449,19 +453,14 @@ def content_live():
     no_time_filter = request.values.get("all")
     assets = get_all_live_assets(no_time_filter=no_time_filter)
     random.shuffle(assets)
-    resp = jsonify(
-        assets=[
-            {
-                "user": asset["userdata"]["user"],
-                "filetype": asset["filetype"],
-                "thumb": asset["thumb"],
-                "url": url_for("static", filename=cached_asset_name(asset)),
-            }
-            for asset in assets
-        ]
-    )
+    resp = jsonify([a.to_dict(mod_data=g.user_is_admin) for a in assets])
     resp.headers["Cache-Control"] = "public, max-age=30"
     return resp
+
+
+@app.route("/metrics")
+def metrics():
+    return generate_latest()
 
 
 # @app.route("/content/last")
