@@ -15,7 +15,9 @@ Vue.component('moderate', {
       <hr/>
       <template v-if='needs_moderation'>
         <p class='text-centered'>
-          Current state: <b>{{asset.state}}</b>
+          Current state: <strong>{{asset.state}}</strong><br>
+          Start time: <strong>{{epoch2String(asset.starts)}}</strong><br>
+          End time: <strong>{{epoch2String(asset.ends)}}</strong>
         </p>
         <div class='row'>
           <div class='col-xs-6'>
@@ -39,14 +41,20 @@ Vue.component('moderate', {
     needs_moderation: true,
     completed: false,
   }),
-  props: ['sig', 'asset'],
+  props: ['asset'],
   methods: {
     async moderate(result) {
       this.needs_moderation = false
       await Vue.nextTick()
-      await Vue.http.post(`/content/moderate/${this.asset.id}-${this.sig}/${result}`)
+      await Vue.http.post(`/content/moderate/${this.asset.id}/${result}`)
       this.completed = true
     },
+    epoch2String(epoch) {
+      if (!epoch) return "None set";
+      let date = new Date(0);
+      date.setUTCSeconds(epoch);
+      return date.toLocaleString();
+    }
   },
 })
 

@@ -3,58 +3,32 @@ from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import get_all_live_assets
+from helper import Asset, State, get_all_live_assets, get_assets, user_is_admin
 from ib_hosted import ib
-from voc_mqtt import send_message
+from notifier import Notifier
 
+FADE_TIME = 0.5
+SLIDE_TIME = 10
 log = getLogger("Syncer")
 
 log.info("Starting sync")
 
-if datetime.now().minute == 7:
-    log.info("Time is :00, broadcasting state")
-    asset_states = {}
-    for asset in ib.get("asset/list")["assets"]:
-        if asset["userdata"].get("user") is not None and asset["userdata"].get(
-            "state"
-        ) not in ("confirmed", "rejected", "deleted"):
-            state = asset["userdata"]["state"]
-            if state not in asset_states:
-                asset_states[state] = 0
-            asset_states[state] += 1
-            log.info(
-                "asset {} is in state {}, uploaded by {}".format(
-                    asset["id"], state, asset["userdata"]["user"]
-                )
-            )
 
-    msg = []
-    for state, count in sorted(asset_states.items()):
-        msg.append("{} assets in state {}.".format(count, state))
-
-    if msg:
-        msg.append("Check the logs for more information")
-        send_message(
-            " ".join(msg),
-            level="WARN",
-        )
-
-
-def asset_to_tiles(asset):
-    log.debug("adding {} to Page".format(asset["id"]))
+def asset_to_tiles(asset: Asset):
+    log.debug("adding {} to Page".format(asset.id))
 
     tiles = []
-    if asset["filetype"] == "video":
+    if asset.filetype == "video":
         tiles.append(
             {
                 "type": "rawvideo",
-                "asset": asset["id"],
+                "asset": asset.id,
                 "x1": 0,
                 "y1": 0,
                 "x2": 1920,
                 "y2": 1080,
                 "config": {
-                    "fade_time": 0.5,
+                    "fade_time": FADE_TIME,
                     "layer": -5,
                     "looped": True,
                 },
@@ -64,15 +38,15 @@ def asset_to_tiles(asset):
         tiles.append(
             {
                 "type": "image",
-                "asset": asset["id"],
+                "asset": asset.id,
                 "x1": 0,
                 "y1": 0,
                 "x2": 1920,
                 "y2": 1080,
-                "config": {"fade_time": 0.5},
+                "config": {"fade_time": FADE_TIME},
             }
         )
-    if asset["userdata"]["user"].lower() not in CONFIG.get("ADMIN_USERS", set()):
+    if not user_is_admin(asset.user):
         tiles.append(
             {
                 "type": "flat",
@@ -81,7 +55,7 @@ def asset_to_tiles(asset):
                 "y1": 1040,
                 "x2": 1920,
                 "y2": 1080,
-                "config": {"color": "#000000", "alpha": 230, "fade_time": 0.5},
+                "config": {"color": "#000000", "alpha": 230, "fade_time": FADE_TIME},
             }
         )
         tiles.append(
@@ -94,9 +68,9 @@ def asset_to_tiles(asset):
                 "y2": 1080,
                 "config": {
                     "font_size": 25,
-                    "fade_time": 0.5,
+                    "fade_time": FADE_TIME,
                     "text": "Project by @{user} - visit {url} to share your own.".format(
-                        user=asset["userdata"]["user"],
+                        user=asset.user,
                         url=CONFIG["DOMAIN"],
                     ),
                     "color": "#dddddd",
@@ -108,20 +82,43 @@ def asset_to_tiles(asset):
     return tiles
 
 
+if datetime.now().minute == int(CONFIG.get("NOTIFIER", {}).get("ALERT_MINUTE", 7)):
+    n = Notifier()
+    asset_states = {}
+    for asset in get_assets():
+        if asset.state not in (State.CONFIRMED, State.REJECTED, State.DELETED):
+            if asset.state not in asset_states:
+                asset_states[asset.state] = 0
+            asset_states[asset.state] += 1
+            log.info(
+                f"asset {asset.id} is in state {asset.state}, uploaded by {asset.user}"
+            )
+
+    msg = []
+    for state, count in sorted(asset_states.items()):
+        msg.append(f"{count} assets in state {state}.")
+
+    if msg:
+        n.message(" ".join(msg), level="WARN")
+
+
 pages = []
 assets_visible = set()
 for asset in get_all_live_assets():
     pages.append(
         {
-            "auto_duration": 10,
-            "duration": 10,
+            "auto_duration": SLIDE_TIME,
+            "duration": SLIDE_TIME
+            - (
+                FADE_TIME * 2
+            ),  # Because it seems like the fade time is exclusive of the 10 sec, so videos play for 11 secs.
             "interaction": {"key": ""},
             "layout_id": -1,  # Use first layout
             "overlap": 0,
             "tiles": asset_to_tiles(asset),
         }
     )
-    assets_visible.add(asset["id"])
+    assets_visible.add(asset.id)
 
 log.info(
     "There are currently {} pages visible with asset ids: {}".format(

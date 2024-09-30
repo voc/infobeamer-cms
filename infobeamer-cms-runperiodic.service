@@ -5,7 +5,8 @@ After=network.target
 Requires=infobeamer-cms.service
 
 [Service]
+Environment=SETTINGS=/opt/infobeamer-cms/settings.toml
 User=infobeamer-cms
 Group=infobeamer-cms
 WorkingDirectory=/opt/infobeamer-cms
-ExecStart=curl -s -H "Host: infobeamer-cms.example.org" http://127.0.0.1:8000/sync
+ExecStart=/opt/infobeamer-cms/.venv/bin/python syncer.py

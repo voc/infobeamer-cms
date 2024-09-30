@@ -155,7 +155,7 @@ Vue.component('asset-box', {
               Request review
             </button>
             <div class='state-link review' v-if='asset.state == "review"'>
-              In review
+              In review (Video team will moderate shortly)
             </div>
             <a class='state-link confirmed' href='/' v-if='asset.state == "confirmed"'>
               Confirmed ✓
@@ -222,7 +222,7 @@ Vue.component('asset-box', {
       const zfill = v => (v+'').length <= 1 ? '0' + v : v
       for (let ts = start; ts <= end; ts += 3600) {
         const date = new Date(ts * 1000)
-        const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth()+1) + '. - ' + 
+        const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth()+1) + '. - ' +
                             zfill(date.getHours()) + ':00'
         options.push([ts, text_string])
       }

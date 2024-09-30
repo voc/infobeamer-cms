@@ -28,12 +28,8 @@ SETUP_IDS = [
 # urls send to moderators.
 URL_KEY = 'reallysecure'
 
-# Push notifications for moderation requests to an mqtt server.
-MQTT_SERVER = '127.0.0.1'
-#MQTT_USERNAME = ''
-#MQTT_PASSWORD = ''
-MQTT_TOPIC = '/voc/alert'
-MQTT_MESSAGE = '{{"level":"info","component":"infobeamer-cms","msg":"{asset} uploaded by {user}. Check it at {url}"}}'
+# Uncomment to use redis as a session store
+# REDIS_HOST = 'localhost'
 
 # Unix timestamp allows for specifying start/end time
 # of uploaded content
@@ -42,6 +38,26 @@ TIME_MAX = 1640905200
 
 # change this to invalidate cached static files.
 VERSION = 1
+
+
+# Push notifications for moderation requests. Supports MQTT with a
+# c3voc-style notification client and [NTFY](https://ntfy.sh/).
+[NOTIFIER]
+# configure on which minute of the hour the hourly reminder of assets
+# pending moderation gets sent. Set to -1 to disable.
+#ALERT_MINUTE = 7
+
+# configure mqtt alerts
+#MQTT_SERVER = '127.0.0.1'
+#MQTT_USERNAME = ''
+#MQTT_PASSWORD = ''
+#MQTT_TOPIC = '/voc/alert'
+
+# configure alerts on ntfy
+#NTFY = [
+#    "https://ntfy.example.com/infobeamer-cms",
+#]
+
 
 # extra assets. If this is empty, only the uploaded content and a notice
 # on where to find the CMS will be shown. You can use this to overlay

@@ -7,9 +7,11 @@ Vue.component('asset-preview', {
         Project by <a :href='"https://github.com/" + asset.user'>{{asset.user}}</a>
       </div>
       <div class='panel-body'>
-        <a :href='asset.url'>
+        <a :href='asset.url' target="_blank">
           <img class='img-responsive' :src='asset.thumb + "?size=328&crop=none"'>
         </a>
+        <p v-if='asset.moderated_by'>Moderated by: {{asset.moderated_by}}</p>
+        <a v-if='asset.moderate_url' :href='asset.moderate_url' class="btn btn-primary btn-small">Moderate</a>
       </div>
     </div>
   `,
@@ -31,7 +33,7 @@ Vue.component('list-last', {
           </a>
           <small>
             <a :href='"https://github.com/" + proof.user'>{{proof.user}}</a>,
-            {{now - proof.shown|floor}}s ago 
+            {{now - proof.shown|floor}}s ago
           </small>
         </p>
       </div>
@@ -80,7 +82,31 @@ Vue.component('list-active', {
   }),
   async created() {
     const r = await Vue.http.get('content/live')
-    this.assets = r.data.assets
+    this.assets = r.data
+  }
+})
+
+Vue.component('list-unmoderated', {
+  template: `
+    <div class='row'>
+      <template v-if='assets.length > 0'>
+        <div class='col-md-4' v-for='asset in assets'>
+          <asset-preview :asset='asset'/>
+        </div>
+      </template>
+      <div class='col-md-12' v-else>
+        <div class='alert alert-info'>
+          None.
+        </div>
+      </div>
+    </div>
+  `,
+  data: () => ({
+    assets: [],
+  }),
+  async created() {
+    const r = await Vue.http.get('content/awaiting_moderation')
+    this.assets = r.data
   }
 })
 
