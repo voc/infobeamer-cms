@@ -39,6 +39,7 @@ from helper import (
     user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
+from notifier import Notifier
 from redis_session import RedisSessionStore
 
 app = Flask(
@@ -323,6 +324,11 @@ def content_request_review(asset_id):
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
+    moderation_message = "{asset} uploaded by {user}. ".format(
+        user=g.user,
+        asset=asset["filetype"].capitalize(),
+    )
+
     if g.user_is_admin:
         update_asset_userdata(asset, state=State.CONFIRMED)
         app.logger.warn(
@@ -330,13 +336,18 @@ def content_request_review(asset_id):
                 asset["id"], g.user
             )
         )
-        return jsonify(ok=True)
+        moderation_message += "It was auto-confirmed because user is an admin."
+    else:
+        moderation_url = url_for("content_moderate", asset_id=asset_id, _external=True)
+        app.logger.info(
+            "moderation url for {} is {}".format(asset["id"], moderation_url)
+        )
+        update_asset_userdata(asset, state=State.REVIEW)
+        moderation_message += f"Check it at {moderation_url}"
 
-    moderation_url = url_for("content_moderate", asset_id=asset_id, _external=True)
+    n = Notifier()
+    n.message(moderation_message)
 
-    app.logger.info("moderation url for {} is {}".format(asset["id"], moderation_url))
-
-    update_asset_userdata(asset, state=State.REVIEW)
     return jsonify(ok=True)
 
 

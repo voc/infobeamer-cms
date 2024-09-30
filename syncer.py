@@ -1,9 +1,11 @@
+from datetime import datetime
 from json import dumps as json_dumps
 from logging import getLogger
 
 from conf import CONFIG
-from helper import Asset, get_all_live_assets, user_is_admin
+from helper import Asset, State, get_all_live_assets, get_assets, user_is_admin
 from ib_hosted import ib
+from notifier import Notifier
 
 FADE_TIME = 0.5
 SLIDE_TIME = 10
@@ -78,6 +80,26 @@ def asset_to_tiles(asset: Asset):
     if "EXTRA_ASSETS" in CONFIG:
         tiles.extend(CONFIG["EXTRA_ASSETS"])
     return tiles
+
+
+if datetime.now().minute == int(CONFIG.get("NOTIFIER", {}).get("ALERT_MINUTE", 7)):
+    n = Notifier()
+    asset_states = {}
+    for asset in get_assets():
+        if asset.state not in (State.CONFIRMED, State.REJECTED, State.DELETED):
+            if asset.state not in asset_states:
+                asset_states[asset.state] = 0
+            asset_states[asset.state] += 1
+            log.info(
+                f"asset {asset.id} is in state {asset.state}, uploaded by {asset.user}"
+            )
+
+    msg = []
+    for state, count in sorted(asset_states.items()):
+        msg.append(f"{count} assets in state {state}.")
+
+    if msg:
+        n.message(" ".join(msg), level="WARN")
 
 
 pages = []
