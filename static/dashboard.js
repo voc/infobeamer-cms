@@ -155,7 +155,7 @@ Vue.component('asset-box', {
               Request review
             </button>
             <div class='state-link review' v-if='asset.state == "review"'>
-              In review (Video team will moderate shortly)
+              In review (Team will moderate shortly)
             </div>
             <a class='state-link confirmed' href='/' v-if='asset.state == "confirmed"'>
               Confirmed ✓
