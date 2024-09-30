@@ -1,14 +1,14 @@
 import enum
 import os
 import random
-from datetime import datetime
-from functools import wraps
 import shutil
 import tempfile
-from typing import Iterable, NamedTuple, Optional
+from datetime import datetime
+from functools import wraps
+from typing import NamedTuple, Optional
 
-from flask import abort, current_app, g, jsonify, url_for
 import requests
+from flask import abort, current_app, g, jsonify, url_for
 
 from conf import CONFIG
 from ib_hosted import ib
@@ -17,8 +17,10 @@ from ib_hosted import ib
 def error(msg):
     return jsonify(error=msg), 400
 
+
 def user_is_admin(user) -> bool:
     return user is not None and user.lower() in CONFIG.get("ADMIN_USERS", set())
+
 
 def admin_required(f):
     @wraps(f)
@@ -26,7 +28,9 @@ def admin_required(f):
         if not g.user_is_admin:
             abort(401)
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 class State(enum.StrEnum):
     NEW = "new"
@@ -34,6 +38,7 @@ class State(enum.StrEnum):
     REJECTED = "rejected"
     DELETED = "deleted"
     REVIEW = "review"
+
 
 class Asset(NamedTuple):
     id: str
@@ -53,18 +58,28 @@ class Asset(NamedTuple):
             "filetype": self.filetype,
             "thumb": self.thumb,
             "url": url_for("static", filename=cached_asset_name(self)),
-        } | ({
-            "moderate_url": url_for(
-                "content_moderate", asset_id=self.id, _external=True
-            ),
-            "moderated_by": self.moderated_by,
-            "state": self.state,
-            "starts": self.starts,
-            "ends": self.ends
-        } if mod_data else {})
+        } | (
+            {
+                "moderate_url": url_for(
+                    "content_moderate", asset_id=self.id, _external=True
+                ),
+                "moderated_by": self.moderated_by,
+                "state": self.state,
+                "starts": self.starts,
+                "ends": self.ends,
+            }
+            if mod_data
+            else {}
+        )
+
 
 def to_int(num):
-    return num if isinstance(num, int) else int(num) if (isinstance(num,str) and num.isdigit()) else None
+    return (
+        num
+        if isinstance(num, int)
+        else int(num) if (isinstance(num, str) and num.isdigit()) else None
+    )
+
 
 def parse_asset(asset):
     return Asset(
@@ -74,28 +89,29 @@ def parse_asset(asset):
         user=asset["userdata"]["user"],
         state=State(asset["userdata"].get("state", "new")),
         starts=to_int(asset["userdata"].get("starts")),
-        ends=to_int(asset["userdata"].get("ends"))
+        ends=to_int(asset["userdata"].get("ends")),
     )
+
 
 def get_asset(id):
     return parse_asset(ib.get(f"asset/{id}"))
 
+
 def get_assets():
     assets = ib.get("asset/list")["assets"]
-    return [ parse_asset(asset) for asset in assets if asset["userdata"].get("user") != None]
+    return [
+        parse_asset(asset)
+        for asset in assets
+        if asset["userdata"].get("user") is not None
+    ]
+
 
 def get_user_assets():
-    return [
-        a for a in get_assets()
-        if a.user == g.user and a.state != State.DELETED
-    ]
+    return [a for a in get_assets() if a.user == g.user and a.state != State.DELETED]
+
 
 def get_assets_awaiting_moderation():
-    return [
-        asset
-        for asset in get_assets()
-        if asset.state == State.NEW
-    ]
+    return [asset for asset in get_assets() if asset.state == State.NEW]
 
 
 def get_all_live_assets(no_time_filter=False):
@@ -106,10 +122,7 @@ def get_all_live_assets(no_time_filter=False):
         if asset.state in (State.CONFIRMED,)
         and (
             no_time_filter
-            or (
-                (asset.starts or now) <= now
-                and (asset.ends or now) >= now
-            )
+            or ((asset.starts or now) <= now and (asset.ends or now) >= now)
         )
     ]
 
@@ -132,7 +145,7 @@ def cached_asset_name(asset: Asset):
         asset_id,
         "jpg" if asset.filetype == "image" else "mp4",
     )
-    cache_name = os.path.join(CONFIG.get('STATIC_PATH', 'static'), filename)
+    cache_name = os.path.join(CONFIG.get("STATIC_PATH", "static"), filename)
 
     if not os.path.exists(cache_name):
         current_app.logger.info(f"fetching {asset_id} to {cache_name}")

@@ -86,7 +86,10 @@ for asset in get_all_live_assets():
     pages.append(
         {
             "auto_duration": SLIDE_TIME,
-            "duration": SLIDE_TIME - (FADE_TIME*2), # Because it seems like the fade time is exclusive of the 10 sec, so videos play for 11 secs.
+            "duration": SLIDE_TIME
+            - (
+                FADE_TIME * 2
+            ),  # Because it seems like the fade time is exclusive of the 10 sec, so videos play for 11 secs.
             "interaction": {"key": ""},
             "layout_id": -1,  # Use first layout
             "overlap": 0,

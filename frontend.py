@@ -1,14 +1,11 @@
-from collections import defaultdict
 import random
 import socket
+from collections import defaultdict
 from datetime import datetime
 from secrets import token_hex
 from typing import Iterable
 
 import iso8601
-from prometheus_client.metrics_core import Metric
-from prometheus_client.core import GaugeMetricFamily, REGISTRY
-from prometheus_client.registry import Collector
 from flask import (
     Flask,
     abort,
@@ -22,13 +19,15 @@ from flask import (
 )
 from flask_github import GitHub
 from prometheus_client import generate_latest
+from prometheus_client.core import REGISTRY, GaugeMetricFamily
+from prometheus_client.metrics_core import Metric
+from prometheus_client.registry import Collector
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
 from helper import (
     State,
     admin_required,
-    cached_asset_name,
     error,
     get_all_live_assets,
     get_asset,
@@ -44,9 +43,9 @@ from redis_session import RedisSessionStore
 
 app = Flask(
     __name__,
-    static_folder=CONFIG.get('STATIC_PATH', 'static'),
+    static_folder=CONFIG.get("STATIC_PATH", "static"),
 )
-app.secret_key = CONFIG.get('URL_KEY')
+app.secret_key = CONFIG.get("URL_KEY")
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 for copy_key in (
@@ -67,7 +66,9 @@ class SubmissionsCollector(Collector):
         counts = defaultdict(int)
         for a in get_assets():
             counts[a.state] += 1
-        g = GaugeMetricFamily("submissions", "Counts of content submissions", labels=["state"])
+        g = GaugeMetricFamily(
+            "submissions", "Counts of content submissions", labels=["state"]
+        )
         for state in State:
             # Add any states that we know about but have 0 assets in them
             if state.value not in counts.keys():
@@ -76,17 +77,26 @@ class SubmissionsCollector(Collector):
             g.add_metric([s], c)
         yield g
 
+
 class InfobeamerCollector(Collector):
     """Prometheus collector for general infobeamer metrics available from the hosted API."""
+
     last_got = 0
     devices = []
+
     def collect(self) -> Iterable[Metric]:
         if (self.last_got + 10) < datetime.now().timestamp():
             self.devices = ib.get("device/list")["devices"]
             self.last_got = datetime.now().timestamp()
         yield GaugeMetricFamily("devices", "Infobeamer devices", len(self.devices))
-        yield GaugeMetricFamily("devices_online", "Infobeamer devices online", len([d for d in self.devices if d["is_online"]]))
-        m = GaugeMetricFamily("device_model", "Infobeamer device models", labels=["model"])
+        yield GaugeMetricFamily(
+            "devices_online",
+            "Infobeamer devices online",
+            len([d for d in self.devices if d["is_online"]]),
+        )
+        m = GaugeMetricFamily(
+            "device_model", "Infobeamer device models", labels=["model"]
+        )
         counts = defaultdict(int)
         for d in self.devices:
             if d.get("hw"):
@@ -224,6 +234,7 @@ def content_list():
         assets=assets,
     )
 
+
 @app.route("/content/awaiting_moderation")
 @admin_required
 def content_awaiting_moderation():
@@ -321,13 +332,11 @@ def content_request_review(asset_id):
         )
         return jsonify(ok=True)
 
-    moderation_url = url_for(
-        "content_moderate", asset_id=asset_id, _external=True
-    )
+    moderation_url = url_for("content_moderate", asset_id=asset_id, _external=True)
 
     app.logger.info("moderation url for {} is {}".format(asset["id"], moderation_url))
 
-    update_asset_userdata(asset, state="review")
+    update_asset_userdata(asset, state=State.REVIEW)
     return jsonify(ok=True)
 
 
@@ -355,10 +364,7 @@ def content_moderate(asset_id):
         )
         abort(404)
 
-    return render_template(
-        "moderate.jinja",
-        asset=asset.to_dict(mod_data=True)
-    )
+    return render_template("moderate.jinja", asset=asset.to_dict(mod_data=True))
 
 
 @app.route(
