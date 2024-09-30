@@ -12,6 +12,7 @@ LOG = getLogger("Notifier")
 class Notifier:
     def __init__(self):
         self.config = CONFIG.get("NOTIFIER", {})
+        LOG.debug(f"init {self.config=}")
 
         self.mqtt = None
         if self.config.get("MQTT_HOST"):
