@@ -51,7 +51,7 @@ class Notifier:
             "msg": message,
         }
 
-        LOG.debug(f"mqtt payload is {payload!r}")
+        LOG.info(f"mqtt payload is {payload!r}")
 
         self.mqtt.connect(self.config["MQTT_HOST"])
         self.mqtt.publish(self.config["MQTT_TOPIC"], dumps(payload))
