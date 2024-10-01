@@ -191,7 +191,7 @@ def last():
 
 @app.route("/faq")
 def faq():
-    return render_template("faq.jinja")
+    return render_template("faq.jinja", **CONFIG["FAQ"])
 
 
 if "INTERRUPT_KEY" in CONFIG:
