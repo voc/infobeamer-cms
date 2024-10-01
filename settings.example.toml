@@ -48,7 +48,7 @@ VERSION = 1
 #ALERT_MINUTE = 7
 
 # configure mqtt alerts
-#MQTT_SERVER = '127.0.0.1'
+#MQTT_HOST = '127.0.0.1'
 #MQTT_USERNAME = ''
 #MQTT_PASSWORD = ''
 #MQTT_TOPIC = '/voc/alert'
