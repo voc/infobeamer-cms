@@ -25,6 +25,7 @@ function xhr_get(url, callback_func) {
 
 // from https://stackoverflow.com/a/12646864
 function shuffle_content() {
+    console.debug("shuffling content");
     array = Object.keys(content);
     for (let i = array.length - 1; i >= 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -102,7 +103,8 @@ window.setInterval(function() {
     if (next_asset['type'] == 'image') {
         img = document.createElement("img");
         img.onload = function() {
-            video.stop();
+            video.pause();
+            video.currentTime = 0;
             video.style.display = "none";
 
             image.src = this.src;
@@ -111,6 +113,7 @@ window.setInterval(function() {
         img.src = next_asset['url'];
     } else  if (next_asset['type'] == 'video') {
         image.style.display = "none";
+
         video.src = next_asset["url"];
         video.style.display = "block";
         video.play();
