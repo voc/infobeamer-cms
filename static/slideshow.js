@@ -102,27 +102,23 @@ window.setInterval(function() {
     if (next_asset['type'] == 'image') {
         img = document.createElement("img");
         img.onload = function() {
+            video.stop();
             video.style.display = "none";
-            image.style.display = "none";
+
             image.src = this.src;
             image.style.display = "block";
         }
         img.src = next_asset['url'];
-    } else /* if (next_asset['type'] == 'video') {
-        vid = document.createElement("video");
-        vid.onload = function() {
-            image.style.display = "none";
-            video.getElementsByTagName("source")[0].src = this.src;
-            video.style.display = "block";
-            video.play();
-        }
-        vid.src = next_asset['url'];
-    } else*/ {
-        /*
+    } else  if (next_asset['type'] == 'video') {
+        image.style.display = "none";
+        video.src = next_asset["url"];
+        video.style.display = "block";
+        video.play();
+    } else {
         document.getElementById("slideshow").style.display = "none";
         document.getElementById("error").style.display = "block";
         document.getElementById("error-text").innerHTML = "unknown asset type " + next_asset["type"];
-        */
+
         console.warn("unknown asset type " + next_asset["type"] + " for asset " + next_asset["url"]);
     }
 }, 10000);
