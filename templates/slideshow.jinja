@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infobeamer-CMS - Slideshow</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='event-logo.png') }}">
+    <link rel="stylesheet" href="{{url_for('static', filename='slideshow.css', v=config.VERSION)}}">
+  </head>
+  <body>
+    <div id="slideshow">
+        <img src="" id="slideshow-image">
+        <video id="slideshow-video" autoplay muted loop>
+            <source src="">
+        </video>
+    </div>
+    <div id="error">
+      <p id="error-text">Loading...</p>
+    </div>
+    <script type="text/javascript">
+        app_startup = {{ APP_STARTUP_TIME }};
+    </script>
+    <script type="text/javascript" src="{{url_for('static', filename='slideshow.js', v=config.VERSION)}}"></script>
+</html>

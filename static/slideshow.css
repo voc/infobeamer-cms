@@ -1,0 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+}
+
+#slideshow, #error {
+  margin: auto 0;
+  text-align: center;
+}
+
+#error {
+    font-size: 100px;
+    margin-top: 200px;
+    color: white;
+    font-family: sans-serif;
+}
+
+img, video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100vw;
+  max-height: 100vh;
+  margin: 0 auto;
+}

@@ -29,6 +29,7 @@
           <li {%if request.path=="/faq"%}class="active"{%endif%}><a href="/faq">
             FAQ / Contact
           </a></li>
+          <li><a href="{{ url_for("slideshow") }}">Slideshow</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           {% if g.user %}

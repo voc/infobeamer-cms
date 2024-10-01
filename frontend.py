@@ -61,6 +61,8 @@ for copy_key in (
 
 socket.setdefaulttimeout(3)  # for mqtt
 
+APP_STARTUP_TIME = int(datetime.now().timestamp())
+
 
 class SubmissionsCollector(Collector):
     def collect(self) -> Iterable[Metric]:
@@ -478,6 +480,32 @@ def content_live():
 @app.route("/metrics")
 def metrics():
     return generate_latest()
+
+
+@app.route("/slideshow")
+def slideshow():
+    return render_template("slideshow.jinja", APP_STARTUP_TIME=APP_STARTUP_TIME)
+
+
+@app.route("/api/slideshow/content")
+def api_slideshow_content():
+    assets = [a.to_dict() for a in get_all_live_assets()]
+    resp = jsonify(
+        {
+            a["id"]: {
+                "url": a["url"],
+                "type": a["filetype"],
+            }
+            for a in assets
+        }
+    )
+    resp.headers["Cache-Control"] = "public, max-age=30"
+    return resp
+
+
+@app.route("/api/startup")
+def app_startup_time():
+    return str(APP_STARTUP_TIME)
 
 
 # @app.route("/content/last")
