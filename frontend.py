@@ -338,7 +338,7 @@ def content_request_review(asset_id):
                 asset["id"], g.user
             )
         )
-        moderation_message += "It was auto-confirmed because user is an admin."
+        moderation_message += "It was automatically confirmed because user is an admin."
     else:
         moderation_url = url_for("content_moderate", asset_id=asset_id, _external=True)
         app.logger.info(
