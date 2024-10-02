@@ -90,6 +90,7 @@ def parse_asset(asset):
         state=State(asset["userdata"].get("state", "new")),
         starts=to_int(asset["userdata"].get("starts")),
         ends=to_int(asset["userdata"].get("ends")),
+        moderated_by=asset["userdata"].get("moderated_by"),
     )
 
 
