@@ -112,7 +112,7 @@ def get_user_assets():
 
 
 def get_assets_awaiting_moderation():
-    return [asset for asset in get_assets() if asset.state == State.NEW]
+    return [asset for asset in get_assets() if asset.state == State.REVIEW]
 
 
 def get_all_live_assets(no_time_filter=False):
