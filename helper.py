@@ -8,7 +8,7 @@ from functools import wraps
 from typing import NamedTuple, Optional
 
 import requests
-from flask import abort, current_app, g, jsonify, url_for
+from flask import abort, current_app, g, jsonify, redirect, request, session, url_for
 
 from conf import CONFIG
 from ib_hosted import ib
@@ -22,9 +22,23 @@ def user_is_admin(user) -> bool:
     return user is not None and user.lower() in CONFIG.get("ADMIN_USERS", set())
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.user:
+            session["redirect_after_login"] = request.url
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if not g.user:
+            session["redirect_after_login"] = request.url
+            return redirect(url_for("login"))
         if not g.user_is_admin:
             abort(401)
         return f(*args, **kwargs)

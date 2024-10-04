@@ -36,6 +36,7 @@ from helper import (
     get_random,
     get_user_assets,
     login_disabled_for_user,
+    login_required,
     user_is_admin,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
@@ -220,17 +221,14 @@ if "INTERRUPT_KEY" in CONFIG:
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
-    if not g.user:
-        return redirect(url_for("index"))
     return render_template("dashboard.jinja")
 
 
 @app.route("/content/list")
+@login_required
 def content_list():
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
     assets = [a._asdict() for a in get_user_assets()]
     random.shuffle(assets)
     return jsonify(
@@ -245,11 +243,8 @@ def content_awaiting_moderation():
 
 
 @app.route("/content/upload", methods=["POST"])
+@login_required
 def content_upload():
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-
     if not g.user_is_admin:
         max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
@@ -310,11 +305,8 @@ def content_upload():
 
 
 @app.route("/content/review/<int:asset_id>", methods=["POST"])
+@login_required
 def content_request_review(asset_id):
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
@@ -419,11 +411,8 @@ def content_moderate_result(asset_id, result):
 
 
 @app.route("/content/<int:asset_id>", methods=["POST"])
+@login_required
 def content_update(asset_id):
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
@@ -445,11 +434,8 @@ def content_update(asset_id):
 
 
 @app.route("/content/<int:asset_id>", methods=["DELETE"])
+@login_required
 def content_delete(asset_id):
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
