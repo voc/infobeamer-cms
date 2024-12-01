@@ -350,13 +350,6 @@ def content_request_review(asset_id):
 @app.route("/content/moderate/<int:asset_id>")
 @admin_required
 def content_moderate(asset_id):
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-    elif not g.user_is_admin:
-        app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
-        abort(401)
-
     try:
         asset = get_asset(asset_id)
     except Exception:
@@ -380,13 +373,6 @@ def content_moderate(asset_id):
 )
 @admin_required
 def content_moderate_result(asset_id, result):
-    if not g.user:
-        session["redirect_after_login"] = request.url
-        return redirect(url_for("login"))
-    elif not g.user_is_admin:
-        app.logger.warning(f"request to moderate {asset_id} by non-admin user {g.user}")
-        abort(401)
-
     try:
         asset = ib.get(f"asset/{asset_id}")
     except Exception:
