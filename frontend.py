@@ -326,7 +326,7 @@ def content_request_review(asset_id):
     )
 
     if g.user_is_admin:
-        update_asset_userdata(asset, state=State.CONFIRMED)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
                 asset["id"], g.user
