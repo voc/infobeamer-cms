@@ -1,5 +1,9 @@
 document.getElementById("slideshow").style.display = "none";
 
+// the timer that's running the slideshow. Gets started automatically by
+// get_live_assets() if it's null
+slideshow_timer = null;
+
 // the list of live assets, as we got it from the api
 content = {};
 
@@ -56,6 +60,10 @@ function get_live_assets() {
     xhr_get('/api/slideshow/content', function() {
         content = JSON.parse(req.responseText);
         console.info("got live assets, " + Object.keys(content).length + " assets in total");
+        if (slideshow_timer === null) {
+            slideshow_tick();
+            slideshow_timer = window.setInterval(slideshow_tick, 10000);
+        }
     });
 }
 
@@ -90,7 +98,7 @@ function get_next_asset_to_show() {
     return content[next_asset];
 }
 
-window.setInterval(function() {
+function slideshow_tick() {
     document.getElementById("slideshow").style.display = "block";
     document.getElementById("error").style.display = "none";
 
@@ -124,4 +132,4 @@ window.setInterval(function() {
 
         console.warn("unknown asset type " + next_asset["type"] + " for asset " + next_asset["url"]);
     }
-}, 10000);
+}
