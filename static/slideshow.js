@@ -60,7 +60,7 @@ function get_live_assets() {
     xhr_get('/api/slideshow/content', function() {
         content = JSON.parse(req.responseText);
         console.info("got live assets, " + Object.keys(content).length + " assets in total");
-        if (slideshow_timer === null) {
+        if (slideshow_timer === null && Object.keys(content).length > 0) {
             slideshow_tick();
             slideshow_timer = window.setInterval(slideshow_tick, 10000);
         }
