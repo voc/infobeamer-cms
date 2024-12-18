@@ -22,6 +22,10 @@ def user_is_admin(user) -> bool:
     return user is not None and user.lower() in CONFIG.get("ADMIN_USERS", set())
 
 
+def user_without_limits(user) -> bool:
+    return user is not None and user.lower() in CONFIG.get("NO_LIMIT_USERS", set())
+
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -143,7 +147,7 @@ def get_all_live_assets(no_time_filter=False):
 
 
 def login_disabled_for_user(user=None):
-    if user_is_admin(user):
+    if user_is_admin(user) or user_without_limits(user):
         return False
 
     now = datetime.now().timestamp()

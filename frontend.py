@@ -38,6 +38,7 @@ from helper import (
     login_disabled_for_user,
     login_required,
     user_is_admin,
+    user_without_limits,
 )
 from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
 from notifier import Notifier
@@ -125,6 +126,7 @@ if CONFIG.get("REDIS_HOST"):
 def before_request():
     user = session.get("gh_login")
     g.user_is_admin = user_is_admin(user)
+    g.user_without_limits = user_without_limits(user)
 
     if login_disabled_for_user(user):
         g.user = None
@@ -333,6 +335,16 @@ def content_request_review(asset_id):
             )
         )
         moderation_message += "It was automatically confirmed because user is an admin."
+    elif g.user_without_limits:
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
+        app.logger.warn(
+            "auto-confirming {} because it was uploaded by no-limits user {}".format(
+                asset["id"], g.user
+            )
+        )
+        moderation_message += (
+            "It was automatically confirmed because user is on the no-limits list."
+        )
     else:
         moderation_url = url_for("content_moderate", asset_id=asset_id, _external=True)
         app.logger.info(
