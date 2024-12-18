@@ -249,7 +249,7 @@ def content_awaiting_moderation():
 @app.route("/content/upload", methods=["POST"])
 @login_required
 def content_upload():
-    if not g.user_is_admin:
+    if not g.user_is_admin and not g.user_without_limits:
         max_uploads = CONFIG["MAX_UPLOADS"]
         if len(get_user_assets()) >= max_uploads:
             return error("You have reached your upload limit")
