@@ -233,7 +233,7 @@ def dashboard():
 @app.route("/content/list")
 @login_required
 def content_list():
-    assets = [a._asdict() for a in get_user_assets()]
+    assets = [a.to_dict() for a in get_user_assets()]
     random.shuffle(assets)
     return jsonify(
         assets=assets,
