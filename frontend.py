@@ -2,6 +2,7 @@ import random
 import socket
 from collections import defaultdict
 from datetime import datetime
+from os import remove as remove_path
 from secrets import token_hex
 from typing import Iterable
 
@@ -230,15 +231,17 @@ def dashboard():
 def content_list():
     assets = [a.to_dict() for a in get_user_assets()]
     random.shuffle(assets)
-    return jsonify(
-        assets=assets,
-    )
+    resp = jsonify(assets=assets)
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.route("/content/awaiting_moderation")
 @admin_required
 def content_awaiting_moderation():
-    return jsonify([a.to_dict(mod_data=True) for a in get_assets_awaiting_moderation()])
+    resp = jsonify([a.to_dict(mod_data=True) for a in get_assets_awaiting_moderation()])
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.route("/content/upload", methods=["POST"])
