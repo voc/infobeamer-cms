@@ -1,9 +1,5 @@
 from json import dumps as json_dumps
-from logging import getLogger
 
-from requests import Session
-
-from conf import CONFIG
 from util.ib_hosted import IBHostedCached
 
 ib = IBHostedCached()

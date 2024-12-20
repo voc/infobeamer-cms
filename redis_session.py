@@ -1,7 +1,6 @@
 import pickle
 
 from flask import sessions
-from redis import Redis
 
 from util import get_random
 from util.redis import REDIS

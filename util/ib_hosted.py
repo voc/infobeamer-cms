@@ -4,7 +4,7 @@ from threading import Lock
 
 from requests import Session
 
-from ..conf import CONF
+from ..conf import CONFIG
 from .redis import REDIS
 
 
