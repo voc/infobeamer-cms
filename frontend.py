@@ -25,7 +25,10 @@ from prometheus_client.registry import Collector
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
-from helper import (
+from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
+from notifier import Notifier
+from redis_session import RedisSessionStore
+from util import (
     State,
     admin_required,
     error,
@@ -40,9 +43,6 @@ from helper import (
     user_is_admin,
     user_without_limits,
 )
-from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
-from notifier import Notifier
-from redis_session import RedisSessionStore
 
 app = Flask(
     __name__,
@@ -118,8 +118,7 @@ REGISTRY.register(InfobeamerCollector())
 
 github = GitHub(app)
 
-if CONFIG.get("REDIS_HOST"):
-    app.session_interface = RedisSessionStore(host=CONFIG.get("REDIS_HOST"))
+app.session_interface = RedisSessionStore(host=CONFIG["REDIS_HOST"])
 
 
 @app.before_request
