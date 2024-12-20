@@ -68,7 +68,7 @@ function get_live_assets() {
 }
 
 get_live_assets();
-window.setInterval(get_live_assets, 300000);
+window.setInterval(get_live_assets, 30000);
 
 // The actual magic starts here. This function knows about the current
 // position in the slideshow and automatically selects the next available
