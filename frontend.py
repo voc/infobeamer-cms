@@ -454,7 +454,7 @@ def content_live():
     assets = get_all_live_assets(no_time_filter=no_time_filter)
     random.shuffle(assets)
     resp = jsonify([a.to_dict(mod_data=g.user_is_admin) for a in assets])
-    resp.headers["Cache-Control"] = "public, max-age=30"
+    resp.headers["Cache-Control"] = "no-cache"
     return resp
 
 
@@ -480,7 +480,7 @@ def api_slideshow_content():
             for a in assets
         }
     )
-    resp.headers["Cache-Control"] = "public, max-age=30"
+    resp.headers["Cache-Control"] = "no-cache"
     return resp
 
 
@@ -523,7 +523,7 @@ def app_startup_time():
 #    resp = jsonify(
 #        last=[[room["name"], last.get(room["name"], [])] for room in CONFIG["ROOMS"]]
 #    )
-#    resp.headers["Cache-Control"] = "public, max-age=5"
+#    resp.headers["Cache-Control"] = "no-cache"
 #    return resp
 #
 #
