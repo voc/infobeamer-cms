@@ -25,7 +25,10 @@ from prometheus_client.registry import Collector
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from conf import CONFIG
-from helper import (
+from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
+from notifier import Notifier
+from redis_session import RedisSessionStore
+from util import (
     State,
     admin_required,
     error,
@@ -40,9 +43,6 @@ from helper import (
     user_is_admin,
     user_without_limits,
 )
-from ib_hosted import get_scoped_api_key, ib, update_asset_userdata
-from notifier import Notifier
-from redis_session import RedisSessionStore
 
 app = Flask(
     __name__,
@@ -86,24 +86,20 @@ class SubmissionsCollector(Collector):
 class InfobeamerCollector(Collector):
     """Prometheus collector for general infobeamer metrics available from the hosted API."""
 
-    last_got = 0
-    devices = []
-
     def collect(self) -> Iterable[Metric]:
-        if (self.last_got + 10) < datetime.now().timestamp():
-            self.devices = ib.get("device/list")["devices"]
-            self.last_got = datetime.now().timestamp()
-        yield GaugeMetricFamily("devices", "Infobeamer devices", len(self.devices))
+        # IBHostedCached will cache this for us
+        devices = ib.get("device/list", cached=True)["devices"]
+        yield GaugeMetricFamily("devices", "Infobeamer devices", len(devices))
         yield GaugeMetricFamily(
             "devices_online",
             "Infobeamer devices online",
-            len([d for d in self.devices if d["is_online"]]),
+            len([d for d in devices if d["is_online"]]),
         )
         m = GaugeMetricFamily(
             "device_model", "Infobeamer device models", labels=["model"]
         )
         counts = defaultdict(int)
-        for d in self.devices:
+        for d in devices:
             if d.get("hw"):
                 counts[d["hw"]["model"]] += 1
             else:
@@ -118,8 +114,7 @@ REGISTRY.register(InfobeamerCollector())
 
 github = GitHub(app)
 
-if CONFIG.get("REDIS_HOST"):
-    app.session_interface = RedisSessionStore(host=CONFIG.get("REDIS_HOST"))
+app.session_interface = RedisSessionStore()
 
 
 @app.before_request

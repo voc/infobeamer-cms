@@ -1,9 +1,9 @@
 import pickle
 
 from flask import sessions
-from redis import Redis
 
-from helper import get_random
+from util import get_random
+from util.redis import REDIS
 
 
 class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
@@ -18,14 +18,11 @@ class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
 
 
 class RedisSessionStore(sessions.SessionInterface):
-    def __init__(self, host):
-        self.redis = Redis(host=host)
-
     def open_session(self, app, request):
         sid = request.cookies.get(app.config["SESSION_COOKIE_NAME"])
         if not sid:
             return RedisSession()
-        data = self.redis.get(f"sid:{sid}")
+        data = REDIS.get(f"sid:{sid}")
         if data is None:
             return RedisSession()
         return RedisSession(sid, pickle.loads(data))
@@ -35,12 +32,12 @@ class RedisSessionStore(sessions.SessionInterface):
             return
         state = dict(session)
         if state:
-            self.redis.setex(f"sid:{session.sid}", 86400, pickle.dumps(state, 2))
+            REDIS.setex(f"sid:{session.sid}", 86400, pickle.dumps(state, 2))
         else:
-            self.redis.delete(f"sid:{session.sid}")
+            REDIS.delete(f"sid:{session.sid}")
         if session.new_sid:
             response.set_cookie(
-                app.session_cookie_name,
+                app.config["SESSION_COOKIE_NAME"],
                 session.sid,
                 httponly=True,
                 secure=True,

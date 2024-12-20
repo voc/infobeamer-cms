@@ -11,7 +11,8 @@ import requests
 from flask import abort, current_app, g, jsonify, redirect, request, session, url_for
 
 from conf import CONFIG
-from ib_hosted import ib
+
+from .ib_hosted import ib
 
 
 def error(msg):
@@ -116,11 +117,8 @@ def get_asset(id):
     return parse_asset(ib.get(f"asset/{id}"))
 
 
-def get_assets():
-    try:
-        assets = ib.get("asset/list")["assets"]
-    except Exception:
-        abort(500)
+def get_assets(cached=False):
+    assets = ib.get("asset/list", cached=cached)["assets"]
     return [
         parse_asset(asset)
         for asset in assets
@@ -140,7 +138,7 @@ def get_all_live_assets(no_time_filter=False):
     now = int(datetime.now().timestamp())
     return [
         asset
-        for asset in get_assets()
+        for asset in get_assets(cached=True)
         if asset.state in (State.CONFIRMED,)
         and (
             no_time_filter
