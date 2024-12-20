@@ -117,10 +117,7 @@ def get_asset(id):
 
 
 def get_assets(cached=False):
-    try:
-        assets = ib.get("asset/list", cached=cached)["assets"]
-    except Exception:
-        abort(500)
+    assets = ib.get("asset/list", cached=cached)["assets"]
     return [
         parse_asset(asset)
         for asset in assets
