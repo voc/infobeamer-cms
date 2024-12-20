@@ -12,7 +12,7 @@
     {% endblock %}
   </head>
   <body class='{{body_class}}'>
-    <nav class="navbar navbar-default hidden-xs">
+    <nav class="navbar navbar-default navbar-expand">
       <div class="container">
         <div class="navbar-header">
           <a class="navbar-brand" href="/">
@@ -43,13 +43,6 @@
         </ul>
       </div>
     </nav>
-    <div class="visible-xs" href="/">
-      <img src='{{url_for('static', filename='event-logo.png')}}'>
-      <span class='mobile-intro'>
-        Share your projects <small>(please use desktop)</small>
-      </span>
-      <hr/>
-    </div>
     <div class="container" id='main'>
       <busy-indicator></busy-indicator>
       {% block body %}
