@@ -54,13 +54,13 @@ class IBHostedCached:
             if not self.locks.get(ep):
                 self.locks[ep] = Lock()
 
+        cached_result = REDIS.get(f"ibh:{ep}")
+        if cached_result is not None and cached:
+            return json_loads(cached_result)
+
         # make sure we only ever run one get() per endpoint at the same
         # time to avoid doing too many requests.
         with self.locks[ep]:
-            cached_result = REDIS.get(f"ibh:{ep}")
-            if cached_result is not None and cached:
-                return json_loads(cached_result)
-
             result = self.ib.get(ep, **params)
             # store result into redis database, set it to expire after 60 seconds
             REDIS.set(f"ibh:{ep}", result.text, ex=60)
