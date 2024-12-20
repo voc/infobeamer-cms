@@ -4,9 +4,15 @@
 {% block body %}
   <h1>
     Your projects
-{% if not g.user_is_admin and not g.user_without_limits %}
-    <small>(limited to {{config.MAX_UPLOADS}})</small>
+    <small>
+{% if g.user_is_admin %}
+      (Admin Mode - auto-approve enabled, no bar at the bottom)
+{% elif g.user_without_limits %}
+      (No-Limits Mode - auto-approve enabled)
+{% else %}
+      (limited to {{config.MAX_UPLOADS}})
 {% endif %}
+    </small>
   </h1>
   <hr/>
   <dashboard></dashboard>
