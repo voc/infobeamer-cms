@@ -37,7 +37,7 @@ class RedisSessionStore(sessions.SessionInterface):
             REDIS.delete(f"sid:{session.sid}")
         if session.new_sid:
             response.set_cookie(
-                app.session_cookie_name,
+                app.config["SESSION_COOKIE_NAME"],
                 session.sid,
                 httponly=True,
                 secure=True,
