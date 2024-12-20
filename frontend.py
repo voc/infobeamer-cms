@@ -86,24 +86,20 @@ class SubmissionsCollector(Collector):
 class InfobeamerCollector(Collector):
     """Prometheus collector for general infobeamer metrics available from the hosted API."""
 
-    last_got = 0
-    devices = []
-
     def collect(self) -> Iterable[Metric]:
-        if (self.last_got + 10) < datetime.now().timestamp():
-            self.devices = ib.get("device/list")["devices"]
-            self.last_got = datetime.now().timestamp()
-        yield GaugeMetricFamily("devices", "Infobeamer devices", len(self.devices))
+        # IBHostedCached will cache this for us
+        devices = ib.get("device/list", cached=True)["devices"]
+        yield GaugeMetricFamily("devices", "Infobeamer devices", len(devices))
         yield GaugeMetricFamily(
             "devices_online",
             "Infobeamer devices online",
-            len([d for d in self.devices if d["is_online"]]),
+            len([d for d in devices if d["is_online"]]),
         )
         m = GaugeMetricFamily(
             "device_model", "Infobeamer device models", labels=["model"]
         )
         counts = defaultdict(int)
-        for d in self.devices:
+        for d in devices:
             if d.get("hw"):
                 counts[d["hw"]["model"]] += 1
             else:
