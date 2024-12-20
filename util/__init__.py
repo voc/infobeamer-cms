@@ -116,9 +116,9 @@ def get_asset(id):
     return parse_asset(ib.get(f"asset/{id}"))
 
 
-def get_assets():
+def get_assets(cached=False):
     try:
-        assets = ib.get("asset/list")["assets"]
+        assets = ib.get("asset/list", cached=cached)["assets"]
     except Exception:
         abort(500)
     return [
@@ -140,7 +140,7 @@ def get_all_live_assets(no_time_filter=False):
     now = int(datetime.now().timestamp())
     return [
         asset
-        for asset in get_assets()
+        for asset in get_assets(cached=True)
         if asset.state in (State.CONFIRMED,)
         and (
             no_time_filter
