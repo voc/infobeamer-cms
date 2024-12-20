@@ -1,8 +1,6 @@
 from json import dumps as json_dumps
 
-from util.ib_hosted import IBHostedCached
-
-ib = IBHostedCached()
+from util.ib_hosted import ib
 
 
 def get_scoped_api_key(statements, expire=60, uses=16):

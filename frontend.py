@@ -118,7 +118,7 @@ REGISTRY.register(InfobeamerCollector())
 
 github = GitHub(app)
 
-app.session_interface = RedisSessionStore(host=CONFIG["REDIS_HOST"])
+app.session_interface = RedisSessionStore()
 
 
 @app.before_request

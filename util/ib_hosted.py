@@ -4,7 +4,7 @@ from threading import Lock
 
 from requests import Session
 
-from ..conf import CONFIG
+from conf import CONFIG
 from .redis import REDIS
 
 
@@ -70,3 +70,5 @@ class IBHostedCached:
 
     def delete(self, ep, **params):
         return self.ib.delete(ep, **params).json()
+
+ib = IBHostedCached()
