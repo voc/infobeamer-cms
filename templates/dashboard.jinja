@@ -2,7 +2,12 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block body %}
-  <h1>Your projects <small>(limited to {{config.MAX_UPLOADS}})</h1>
+  <h1>
+    Your projects
+{% if not g.user_is_admin and not g.user_without_limits %}
+    <small>(limited to {{config.MAX_UPLOADS}})</small>
+{% endif %}
+  </h1>
   <hr/>
   <dashboard></dashboard>
 {% endblock %}
