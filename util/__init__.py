@@ -70,25 +70,32 @@ class Asset(NamedTuple):
     moderate_url: Optional[str] = None
     moderated_by: Optional[str] = None
 
-    def to_dict(self, mod_data=False):
-        return {
-            "id": self.id,
-            "user": self.user,
-            "filetype": self.filetype,
-            "thumb": self.thumb,
-            "url": url_for("static", filename=cached_asset_name(self)),
-        } | (
+    def to_dict(self, user_data=False, mod_data=False):
+        return (
             {
-                "moderate_url": url_for(
-                    "content_moderate", asset_id=self.id, _external=True
-                ),
-                "moderated_by": self.moderated_by,
+                "id": self.id,
+                "user": self.user,
+                "filetype": self.filetype,
+                "thumb": self.thumb,
+                "url": url_for("static", filename=cached_asset_name(self)),
+            }
+            | {
                 "state": self.state,
                 "starts": self.starts,
                 "ends": self.ends,
             }
-            if mod_data
+            if user_data or mod_data
             else {}
+            | (
+                {
+                    "moderate_url": url_for(
+                        "content_moderate", asset_id=self.id, _external=True
+                    ),
+                    "moderated_by": self.moderated_by,
+                }
+                if mod_data
+                else {}
+            )
         )
 
 

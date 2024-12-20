@@ -2,7 +2,6 @@ import random
 import socket
 from collections import defaultdict
 from datetime import datetime
-from os import remove as remove_path
 from secrets import token_hex
 from typing import Iterable
 
@@ -229,7 +228,7 @@ def dashboard():
 @app.route("/content/list")
 @login_required
 def content_list():
-    assets = [a.to_dict() for a in get_user_assets()]
+    assets = [a.to_dict(user_data=True) for a in get_user_assets()]
     random.shuffle(assets)
     resp = jsonify(assets=assets)
     resp.headers["Cache-Control"] = "no-cache"
