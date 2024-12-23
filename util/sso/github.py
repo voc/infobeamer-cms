@@ -6,6 +6,10 @@ from conf import CONFIG
 LOG = getLogger("SSO-Github")
 
 
+def get_github_userid(userinfo_json):
+    return userinfo_json["login"]
+
+
 def get_github_username(userinfo_json):
     return "{} (GitHub)".format(userinfo_json["login"])
 

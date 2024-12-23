@@ -126,6 +126,7 @@ def before_request():
     if not provider or not userinfo:
         return
 
+    userid = SSO_CONFIG[provider]["functions"]["userid"](userinfo)
     username = SSO_CONFIG[provider]["functions"]["username"](userinfo)
     user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
     user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo)
@@ -135,7 +136,7 @@ def before_request():
 
     g.user_is_admin = user_is_admin
     g.user_without_limits = user_without_limits
-    g.userid = f"{provider}:{username}"
+    g.userid = userid
     g.username = username
 
 

@@ -3,6 +3,7 @@ from util.sso.github import (
     check_github_allowed_login,
     check_github_is_admin,
     check_github_no_limit,
+    get_github_userid,
     get_github_username,
 )
 
@@ -17,6 +18,7 @@ SSO_CONFIG = {
             "is_admin": check_github_is_admin,
             "login_allowed": check_github_allowed_login,
             "no_limit": check_github_no_limit,
+            "userid": get_github_userid,
             "username": get_github_username,
         },
     },
