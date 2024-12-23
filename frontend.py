@@ -6,11 +6,11 @@ from secrets import token_hex
 from typing import Iterable
 from urllib.parse import urlencode
 
-import iso8601
 import requests
 from flask import (
     Flask,
     abort,
+    flash,
     g,
     jsonify,
     redirect,
@@ -200,7 +200,7 @@ def oauth2_callback(provider):
     if "error" in request.args:
         for k, v in request.args.items():
             if k.startswith("error"):
-                flash(f"{k}: {v}")
+                flash(f"{k}: {v}", "danger")
         return redirect(url_for("index"))
 
     if request.args["state"] != session.get("oauth2_state"):
@@ -236,6 +236,7 @@ def oauth2_callback(provider):
     userinfo_json = r.json()
 
     if not SSO_CONFIG[provider]["functions"]["login_allowed"](userinfo_json):
+        flash("You are not allowed to log in at this time.", "warning")
         return redirect(url_for("faq", _anchor="signup"))
 
     session["oauth2_provider"] = provider
@@ -248,6 +249,7 @@ def oauth2_callback(provider):
 @app.route("/logout")
 def logout():
     session.clear()
+    flash("You have been logged out", "info")
     return redirect(url_for("index"))
 
 

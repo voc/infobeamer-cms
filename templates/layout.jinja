@@ -47,6 +47,11 @@
     </nav>
     <div class="container" id='main'>
       <busy-indicator></busy-indicator>
+      {% for messages in get_flashed_messages(with_categories=True) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+      {% endfor %}
       {% if start_time %}
         <div class="alert alert-info" role="alert">
           <h2>Submissions are not yet open</h2>
