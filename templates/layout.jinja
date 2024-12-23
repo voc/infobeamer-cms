@@ -32,13 +32,15 @@
           <li><a href="{{ url_for("slideshow") }}">Slideshow</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
-          {% if g.user %}
+          {% if g.userid %}
             <li {%if request.path=="/dashboard"%}class="active"{%endif%}><a href="/dashboard">
-              {{g.user}}'s projects
+              {{g.username}}'s projects
             </a></li>
             <li><a href="/logout">Logout</a></li>
           {% else %}
-            <li><a href="/login">Login / Sign up using Github</a></li>
+            {% for slug, name in login_providers.items() %}
+              <li><a href="/login/{{ slug }}">Login / Sign up using {{ name }}</a></li>
+            {% endfor %}
           {% endif %}
         </ul>
       </div>

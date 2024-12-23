@@ -3,7 +3,7 @@ import os
 import random
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import NamedTuple, Optional
 
@@ -14,25 +14,24 @@ from conf import CONFIG
 
 from .ib_hosted import ib
 
+DEFAULT_SSO_PROVIDER = CONFIG.get(
+    "DEFAULT_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
+)
+DEFAULT_ADMIN_SSO_PROVIDER = CONFIG.get(
+    "DEFAULT_ADMIN_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
+)
+
 
 def error(msg):
     return jsonify(error=msg), 400
 
 
-def user_is_admin(user) -> bool:
-    return user is not None and user.lower() in CONFIG.get("ADMIN_USERS", set())
-
-
-def user_without_limits(user) -> bool:
-    return user is not None and user.lower() in CONFIG.get("NO_LIMIT_USERS", set())
-
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not g.user:
+        if not g.userid:
             session["redirect_after_login"] = request.url
-            return redirect(url_for("login"))
+            return redirect(url_for("login", provider=DEFAULT_SSO_PROVIDER))
         return f(*args, **kwargs)
 
     return decorated_function
@@ -41,9 +40,9 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not g.user:
+        if not g.userid:
             session["redirect_after_login"] = request.url
-            return redirect(url_for("login"))
+            return redirect(url_for("login", provider=DEFAULT_ADMIN_SSO_PROVIDER))
         if not g.user_is_admin:
             abort(401)
         return f(*args, **kwargs)
@@ -136,7 +135,7 @@ def get_assets(cached=False):
 
 
 def get_user_assets():
-    return [a for a in get_assets() if a.user == g.user and a.state != State.DELETED]
+    return [a for a in get_assets() if a.user == g.userid and a.state != State.DELETED]
 
 
 def get_assets_awaiting_moderation():
@@ -156,11 +155,8 @@ def get_all_live_assets(no_time_filter=False):
     ]
 
 
-def login_disabled_for_user(user=None):
-    if user_is_admin(user) or user_without_limits(user):
-        return False
-
-    now = datetime.now().timestamp()
+def is_within_timeframe():
+    now = datetime.now(timezone.utc).timestamp()
     return not (CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"])
 
 

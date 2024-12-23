@@ -4,8 +4,10 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from secrets import token_hex
 from typing import Iterable
+from urllib.parse import urlencode
 
 import iso8601
+import requests
 from flask import (
     Flask,
     abort,
@@ -17,7 +19,6 @@ from flask import (
     session,
     url_for,
 )
-from flask_github import GitHub
 from prometheus_client import generate_latest
 from prometheus_client.core import REGISTRY, GaugeMetricFamily
 from prometheus_client.metrics_core import Metric
@@ -38,11 +39,10 @@ from util import (
     get_assets_awaiting_moderation,
     get_random,
     get_user_assets,
-    login_disabled_for_user,
+    is_within_timeframe,
     login_required,
-    user_is_admin,
-    user_without_limits,
 )
+from util.sso import SSO_CONFIG
 
 app = Flask(
     __name__,
@@ -52,8 +52,6 @@ app.secret_key = CONFIG.get("URL_KEY")
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 for copy_key in (
-    "GITHUB_CLIENT_ID",
-    "GITHUB_CLIENT_SECRET",
     "MAX_UPLOADS",
     "ROOMS",
     "TIME_MAX",
@@ -112,30 +110,49 @@ class InfobeamerCollector(Collector):
 REGISTRY.register(SubmissionsCollector())
 REGISTRY.register(InfobeamerCollector())
 
-github = GitHub(app)
-
 app.session_interface = RedisSessionStore()
 
 
 @app.before_request
 def before_request():
-    user = session.get("gh_login")
-    g.user_is_admin = user_is_admin(user)
-    g.user_without_limits = user_without_limits(user)
+    provider = session.get("oauth2_provider")
+    userinfo = session.get("oauth2_userinfo")
 
-    if login_disabled_for_user(user):
-        g.user = None
-        g.avatar = None
+    g.user_is_admin = False
+    g.user_without_limits = False
+    g.userid = ""
+    g.username = ""
+
+    if not provider or not userinfo:
         return
 
-    g.user = user
-    g.avatar = session.get("gh_avatar")
+    username = SSO_CONFIG[provider]["functions"]["username"](userinfo)
+    user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
+    user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo)
+
+    if not (user_is_admin or user_without_limits or is_within_timeframe()):
+        return
+
+    g.user_is_admin = user_is_admin
+    g.user_without_limits = user_without_limits
+    g.userid = f"{provider}:{username}"
+    g.username = username
+
+
+@app.context_processor
+def login_providers():
+    result = {}
+
+    for provider, config in CONFIG["oauth2_providers"].items():
+        result[provider] = config.get("display_name", provider.capitalize())
+
+    return {"login_providers": result}
 
 
 @app.context_processor
 def start_time_alert():
     # if g.user is set, the user was successfully logged in (see above)
-    if g.user:
+    if g.userid:
         return {"start_time": None}
 
     start_time = datetime.fromtimestamp(CONFIG["TIME_MIN"], timezone.utc)
@@ -146,45 +163,86 @@ def start_time_alert():
     return {"start_time": start_time.strftime("%F %T")}
 
 
-@app.route("/github-callback")
-@github.authorized_handler
-def authorized(access_token):
-    if access_token is None:
-        return redirect(url_for("index"))
+@app.route("/login/<provider>")
+def login(provider):
+    if g.userid:
+        return redirect(url_for("dashboard"))
 
-    state = request.args.get("state")
-    if state is None or state != session.get("state"):
-        return redirect(url_for("index"))
-    session.pop("state")
+    provider_config = CONFIG["oauth2_providers"].get(provider, {})
+    if not provider_config or provider not in SSO_CONFIG:
+        abort(404)
 
-    github_user = github.get("user", access_token=access_token)
-    if github_user["type"] != "User":
-        return redirect(url_for("faq", _anchor="signup"))
+    session["oauth2_state"] = state = get_random()
 
-    if login_disabled_for_user(github_user["login"]):
-        return render_template("time_error.jinja")
-
-    age = datetime.utcnow() - iso8601.parse_date(github_user["created_at"]).replace(
-        tzinfo=None
+    qs = urlencode(
+        {
+            "client_id": provider_config["client_id"],
+            "redirect_uri": url_for(
+                "oauth2_callback", provider=provider, _external=True
+            ),
+            "response_type": "code",
+            "scope": " ".join(SSO_CONFIG[provider]["scopes"]),
+            "state": state,
+        }
     )
+    return redirect("{}?{}".format(SSO_CONFIG[provider]["authorize_url"], qs))
 
-    app.logger.info(f"user is {age.days} days old")
-    app.logger.info("user has {} followers".format(github_user["followers"]))
-    if age.days < 31 and github_user["followers"] < 10:
+
+@app.route("/login/callback/<provider>")
+def oauth2_callback(provider):
+    if g.userid:
+        return redirect(url_for("dashboard"))
+
+    provider_config = CONFIG["oauth2_providers"].get(provider, {})
+    if not provider_config or provider not in SSO_CONFIG:
+        abort(404)
+
+    if "error" in request.args:
+        for k, v in request.args.items():
+            if k.startswith("error"):
+                flash(f"{k}: {v}")
+        return redirect(url_for("index"))
+
+    if request.args["state"] != session.get("oauth2_state"):
+        abort(401)
+
+    if "code" not in request.args:
+        abort(400)
+
+    r = requests.post(
+        SSO_CONFIG[provider]["token_url"],
+        data={
+            "client_id": provider_config["client_id"],
+            "client_secret": provider_config["client_secret"],
+            "code": request.args["code"],
+            "grant_type": "authorization_code",
+            "redirect_uri": url_for(
+                "oauth2_callback", provider=provider, _external=True
+            ),
+        },
+        headers={"Accept": "application/json"},
+    )
+    if r.status_code != 200:
+        abort(400)
+    oauth2_token = r.json().get("access_token")
+
+    r = requests.get(
+        SSO_CONFIG[provider]["userinfo_url"],
+        headers={
+            "Authorization": f"Bearer {oauth2_token}",
+            "Accept": "application/json",
+        },
+    )
+    userinfo_json = r.json()
+
+    if not SSO_CONFIG[provider]["functions"]["login_allowed"](userinfo_json):
         return redirect(url_for("faq", _anchor="signup"))
 
-    session["gh_login"] = github_user["login"]
+    session["oauth2_provider"] = provider
+    session["oauth2_userinfo"] = userinfo_json
     if "redirect_after_login" in session:
         return redirect(session["redirect_after_login"])
     return redirect(url_for("dashboard"))
-
-
-@app.route("/login")
-def login():
-    if g.user:
-        return redirect(url_for("dashboard"))
-    session["state"] = state = get_random()
-    return github.authorize(state=state)
 
 
 @app.route("/logout")
@@ -213,7 +271,7 @@ def saal():
     auth = CONFIG.get("INTERRUPT_KEY")
     if not auth:
         abort(404)
-    if not user_is_admin(g.user) and request.args.get("auth") != auth:
+    if not g.user_is_admin and request.args.get("auth") != auth:
         abort(401)
 
     interrupt_key = get_scoped_api_key(
@@ -271,13 +329,16 @@ def content_upload():
     extension = "jpg" if filetype == "image" else "mp4"
 
     filename = "user/{}/{}_{}.{}".format(
-        g.user, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), token_hex(8), extension
+        g.userid,
+        datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        token_hex(8),
+        extension,
     )
     condition = {
         "StringEquals": {
             "asset:filename": filename,
             "asset:filetype": filetype,
-            "userdata:user": g.user,
+            "userdata:user": g.userid,
         },
         "NotExists": {
             "userdata:state": True,
@@ -311,7 +372,7 @@ def content_upload():
         )
     return jsonify(
         filename=filename,
-        user=g.user,
+        user=g.userid,
         upload_key=get_scoped_api_key(
             [{"Action": "asset:upload", "Condition": condition, "Effect": "allow"}],
             uses=1,
@@ -327,30 +388,30 @@ def content_request_review(asset_id):
     except Exception:
         abort(404)
 
-    if asset["userdata"].get("user") != g.user:
+    if asset["userdata"].get("user") != g.userid:
         return error("Cannot review")
 
     if "state" in asset["userdata"]:  # not in new state?
         return error("Cannot review")
 
     moderation_message = "{asset} uploaded by {user}. ".format(
-        user=g.user,
+        user=g.userid,
         asset=asset["filetype"].capitalize(),
     )
 
     if g.user_is_admin:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
-                asset["id"], g.user
+                asset["id"], g.userid
             )
         )
         moderation_message += "It was automatically confirmed because user is an admin."
     elif g.user_without_limits:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by no-limits user {}".format(
-                asset["id"], g.user
+                asset["id"], g.userid
             )
         )
         moderation_message += (
@@ -413,10 +474,10 @@ def content_moderate_result(asset_id, result):
 
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.user)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
-        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.user)
+        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.userid)
 
     return jsonify(ok=True)
 
@@ -432,7 +493,7 @@ def content_update(asset_id):
     starts = request.values.get("starts", type=int)
     ends = request.values.get("ends", type=int)
 
-    if asset["userdata"].get("user") != g.user:
+    if asset["userdata"].get("user") != g.userid:
         return error("Cannot update")
 
     try:
@@ -452,7 +513,7 @@ def content_delete(asset_id):
     except Exception:
         abort(404)
 
-    if asset["userdata"].get("user") != g.user:
+    if asset["userdata"].get("user") != g.userid:
         return error("Cannot delete")
 
     try:
