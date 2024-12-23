@@ -132,8 +132,6 @@ def before_request():
     user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
     user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo)
 
-    REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
-
     if not (user_is_admin or user_without_limits or is_within_timeframe()):
         return
 
@@ -245,6 +243,10 @@ def oauth2_callback(provider):
 
     session["oauth2_provider"] = provider
     session["oauth2_userinfo"] = userinfo_json
+
+    user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
+    REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
+
     if "redirect_after_login" in session:
         return redirect(session["redirect_after_login"])
     return redirect(url_for("dashboard"))
