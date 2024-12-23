@@ -160,7 +160,7 @@ def get_all_live_assets(no_time_filter=False):
 
 def is_within_timeframe():
     now = datetime.now(timezone.utc).timestamp()
-    return not (CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"])
+    return CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"]
 
 
 def get_random(size=16):
