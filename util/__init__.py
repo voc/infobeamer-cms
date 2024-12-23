@@ -138,7 +138,9 @@ def get_assets(cached=False):
 
 
 def get_user_assets():
-    return [a for a in get_assets() if a.userid == g.userid and a.state != State.DELETED]
+    return [
+        a for a in get_assets() if a.userid == g.userid and a.state != State.DELETED
+    ]
 
 
 def get_assets_awaiting_moderation():

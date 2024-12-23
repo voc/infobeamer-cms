@@ -5,7 +5,8 @@ from logging import getLogger
 from conf import CONFIG
 from ib_hosted import ib
 from notifier import Notifier
-from util import Asset, State, get_all_live_assets, get_assets, user_is_admin
+from util import Asset, State, get_all_live_assets, get_assets
+from util.redis import REDIS
 
 FADE_TIME = 0.5
 SLIDE_TIME = 10
@@ -46,7 +47,8 @@ def asset_to_tiles(asset: Asset):
                 "config": {"fade_time": FADE_TIME},
             }
         )
-    if not user_is_admin(asset.user):
+
+    if REDIS.get(f"admin:{asset.userid}") == "1":
         tiles.append(
             {
                 "type": "flat",

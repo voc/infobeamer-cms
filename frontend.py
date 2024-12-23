@@ -42,6 +42,7 @@ from util import (
     is_within_timeframe,
     login_required,
 )
+from util.redis import REDIS
 from util.sso import SSO_CONFIG
 
 app = Flask(
@@ -130,6 +131,8 @@ def before_request():
     username = SSO_CONFIG[provider]["functions"]["username"](userinfo)
     user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
     user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo)
+
+    REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
 
     if not (user_is_admin or user_without_limits or is_within_timeframe()):
         return
