@@ -48,7 +48,7 @@ def asset_to_tiles(asset: Asset):
             }
         )
 
-    if REDIS.get(f"admin:{asset.userid}") == "1":
+    if REDIS.get(f"admin:{asset.userid}") != "1":
         tiles.append(
             {
                 "type": "flat",
