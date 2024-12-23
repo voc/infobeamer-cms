@@ -11,7 +11,7 @@ SSO_CONFIG = {
         "display_name": "GitHub",
         "authorize_url": "https://github.com/login/oauth/authorize",
         "token_url": "https://github.com/login/oauth/access_token",
-        "scopes": ["user:email"],
+        "scopes": [],
         "userinfo_url": "https://api.github.com/user",
         "functions": {
             "is_admin": check_github_is_admin,
