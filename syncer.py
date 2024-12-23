@@ -48,7 +48,12 @@ def asset_to_tiles(asset: Asset):
             }
         )
 
-    if REDIS.get(f"admin:{asset.userid}") != "1":
+    user_is_admin = REDIS.get(f"admin:{asset.userid}")
+    if isinstance(user_is_admin, bytes):
+        # somehow, writing "1" into redis makes it return bytes instead
+        # of a string?
+        user_is_admin = user_is_admin.decode()
+    if user_is_admin != "1":
         tiles.append(
             {
                 "type": "flat",
@@ -71,7 +76,7 @@ def asset_to_tiles(asset: Asset):
                 "config": {
                     "font_size": 25,
                     "fade_time": FADE_TIME,
-                    "text": "Project by @{user} - visit {url} to share your own.".format(
+                    "text": "Project by {user} - visit {url} to share your own.".format(
                         user=asset.username,
                         url=CONFIG["DOMAIN"],
                     ),
@@ -93,7 +98,7 @@ if datetime.now().minute == int(CONFIG["NOTIFIER"].get("ALERT_MINUTE", 7)):
                 asset_states[asset.state] = 0
             asset_states[asset.state] += 1
             log.info(
-                f"asset {asset.id} is in state {asset.state}, uploaded by {asset.user}"
+                f"asset {asset.id} is in state {asset.state}, uploaded by {asset.username}"
             )
 
     msg = []
