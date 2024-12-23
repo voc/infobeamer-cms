@@ -11,7 +11,7 @@ LOG = getLogger("Notifier")
 
 class Notifier:
     def __init__(self):
-        self.config = CONFIG.get("NOTIFIER", {})
+        self.config = CONFIG["NOTIFIER"]
         LOG.debug(f"init {self.config=}")
 
         self.mqtt = None

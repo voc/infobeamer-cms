@@ -82,7 +82,7 @@ def asset_to_tiles(asset: Asset):
     return tiles
 
 
-if datetime.now().minute == int(CONFIG.get("NOTIFIER", {}).get("ALERT_MINUTE", 7)):
+if datetime.now().minute == int(CONFIG["NOTIFIER"].get("ALERT_MINUTE", 7)):
     n = Notifier()
     asset_states = {}
     for asset in get_assets():

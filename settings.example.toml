@@ -1,8 +1,5 @@
 # This github OAuth client will be used for authentication. Create
 # one at https://github.com/organizations/ACCOUNT/settings/applications
-GITHUB_CLIENT_ID = ''
-GITHUB_CLIENT_SECRET = ''
-
 SESSION_COOKIE_NAME = '__Host-sess'
 
 PREFERRED_URL_SCHEME = 'https'
@@ -14,8 +11,14 @@ PREFERRED_URL_SCHEME = 'https'
 # The keys given out to users are adhoc keys based on this key.
 HOSTED_API_KEY = ''
 
-# Maximum uploads per github user
+# Maximum uploads per user unless exempt by being an admin or no-limit
+# user
 MAX_UPLOADS = 5
+
+# list of users with elevated permissions. scheme is
+# "oauthprovider:username" ("c3voc:exampleuser")
+ADMIN_USERS = []
+NO_LIMIT_USERS = []
 
 # Setup IDs using the scheduled player setup. One of the
 # playlists must be named 'User Content'. Its pages will be
@@ -28,8 +31,8 @@ SETUP_IDS = [
 # urls send to moderators.
 URL_KEY = 'reallysecure'
 
-# Uncomment to use redis as a session store
-# REDIS_HOST = 'localhost'
+# redis is used as session store and for caching the asset list
+REDIS_HOST = 'localhost'
 
 # Unix timestamp allows for specifying start/end time
 # of uploaded content
@@ -68,6 +71,16 @@ CONTACT = """
     <a href="https://www.hackint.org/transport/matrix">bridged to matrix</a>)
     or #info-beamer on the cccv rocketchat instance.
 """
+
+
+# oauth providers
+[oauth2_providers.github]
+client_id = ""
+client_secret = ""
+
+[oauth2_providers.c3voc]
+client_id = ""
+client_secret = ""
 
 
 # extra assets. If this is empty, only the uploaded content and a notice
