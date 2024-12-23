@@ -398,23 +398,23 @@ def content_request_review(asset_id):
         return error("Cannot review")
 
     moderation_message = "{asset} uploaded by {user}. ".format(
-        user=g.userid,
+        user=g.username,
         asset=asset["filetype"].capitalize(),
     )
 
     if g.user_is_admin:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
-                asset["id"], g.userid
+                asset["id"], g.username
             )
         )
         moderation_message += "It was automatically confirmed because user is an admin."
     elif g.user_without_limits:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
         app.logger.warn(
             "auto-confirming {} because it was uploaded by no-limits user {}".format(
-                asset["id"], g.userid
+                asset["id"], g.username
             )
         )
         moderation_message += (
@@ -477,10 +477,10 @@ def content_moderate_result(asset_id, result):
 
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.userid)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
-        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.userid)
+        update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.username)
 
     return jsonify(ok=True)
 
