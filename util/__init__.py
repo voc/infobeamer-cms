@@ -63,7 +63,8 @@ class Asset(NamedTuple):
     filetype: str
     thumb: str
     state: State
-    user: str
+    userid: str
+    username: str
     starts: Optional[int] = None
     ends: Optional[int] = None
     moderate_url: Optional[str] = None
@@ -72,7 +73,8 @@ class Asset(NamedTuple):
     def to_dict(self, user_data=False, mod_data=False):
         result = {
             "id": self.id,
-            "user": self.user,
+            "userid": self.userid,
+            "username": self.username,
             "filetype": self.filetype,
             "thumb": self.thumb,
             "url": url_for("static", filename=cached_asset_name(self)),
@@ -113,7 +115,8 @@ def parse_asset(asset):
         id=asset["id"],
         filetype=asset["filetype"],
         thumb=asset["thumb"],
-        user=asset["userdata"]["user"],
+        userid=asset["userdata"]["userid"],
+        username=asset["userdata"]["username"],
         state=State(asset["userdata"].get("state", "new")),
         starts=to_int(asset["userdata"].get("starts")),
         ends=to_int(asset["userdata"].get("ends")),
@@ -130,12 +133,12 @@ def get_assets(cached=False):
     return [
         parse_asset(asset)
         for asset in assets
-        if asset["userdata"].get("user") is not None
+        if asset["userdata"].get("userid") is not None
     ]
 
 
 def get_user_assets():
-    return [a for a in get_assets() if a.user == g.userid and a.state != State.DELETED]
+    return [a for a in get_assets() if a.userid == g.userid and a.state != State.DELETED]
 
 
 def get_assets_awaiting_moderation():

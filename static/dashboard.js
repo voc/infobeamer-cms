@@ -62,7 +62,8 @@ const store = new Vuex.Store({
       fd.append('file', file, r1.filename)
       fd.append('x-want-acl-trace', 'yes')
       fd.append('userdata', JSON.stringify({
-        'user': r1.user,
+        'userid': r1.userid,
+        'username': r1.username,
       }))
       const api_key = r1.upload_key
       const r2 = (await Vue.http.post('https://info-beamer.com/api/v1/asset/upload', fd, {

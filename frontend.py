@@ -341,7 +341,8 @@ def content_upload():
         "StringEquals": {
             "asset:filename": filename,
             "asset:filetype": filetype,
-            "userdata:user": g.userid,
+            "userdata:userid": g.userid,
+            "userdata:username": g.username,
         },
         "NotExists": {
             "userdata:state": True,
@@ -375,7 +376,8 @@ def content_upload():
         )
     return jsonify(
         filename=filename,
-        user=g.userid,
+        userid=g.userid,
+        username=g.username,
         upload_key=get_scoped_api_key(
             [{"Action": "asset:upload", "Condition": condition, "Effect": "allow"}],
             uses=1,
@@ -391,7 +393,7 @@ def content_request_review(asset_id):
     except Exception:
         abort(404)
 
-    if asset["userdata"].get("user") != g.userid:
+    if asset["userdata"].get("userid") != g.userid:
         return error("Cannot review")
 
     if "state" in asset["userdata"]:  # not in new state?
@@ -496,7 +498,7 @@ def content_update(asset_id):
     starts = request.values.get("starts", type=int)
     ends = request.values.get("ends", type=int)
 
-    if asset["userdata"].get("user") != g.userid:
+    if asset["userdata"].get("userid") != g.userid:
         return error("Cannot update")
 
     try:
@@ -516,7 +518,7 @@ def content_delete(asset_id):
     except Exception:
         abort(404)
 
-    if asset["userdata"].get("user") != g.userid:
+    if asset["userdata"].get("userid") != g.userid:
         return error("Cannot delete")
 
     try:
