@@ -1,3 +1,4 @@
+from conf import CONFIG
 from util.sso.github import (
     check_github_allowed_login,
     check_github_is_admin,
@@ -20,3 +21,10 @@ SSO_CONFIG = {
         },
     },
 }
+
+
+for provider in CONFIG["oauth2_providers"]:
+    if provider not in SSO_CONFIG:
+        raise RuntimeError(
+            f"SSO provider {provider} found in config, but not configured."
+        )
