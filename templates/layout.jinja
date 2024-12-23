@@ -45,6 +45,12 @@
     </nav>
     <div class="container" id='main'>
       <busy-indicator></busy-indicator>
+      {% if start_time %}
+        <div class="alert alert-info" role="alert">
+          <h2>Submissions are not yet open</h2>
+          <p>You will be able to submit content starting <span style="font-weight: bolder;">{{ start_time }} UTC</span></p>
+        </div>
+      {% endif %}
       {% block body %}
       {% endblock %}
       <hr/>

@@ -1,7 +1,7 @@
 import random
 import socket
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from secrets import token_hex
 from typing import Iterable
 
@@ -130,6 +130,20 @@ def before_request():
 
     g.user = user
     g.avatar = session.get("gh_avatar")
+
+
+@app.context_processor
+def start_time_alert():
+    # if g.user is set, the user was successfully logged in (see above)
+    if g.user:
+        return {"start_time": None}
+
+    start_time = datetime.fromtimestamp(CONFIG["TIME_MIN"], timezone.utc)
+
+    if start_time < datetime.now(timezone.utc):
+        return {"start_time": None}
+
+    return {"start_time": start_time.strftime("%F %T")}
 
 
 @app.route("/github-callback")
