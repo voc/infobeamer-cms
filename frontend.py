@@ -244,7 +244,8 @@ def oauth2_callback(provider):
     session["oauth2_provider"] = provider
     session["oauth2_userinfo"] = userinfo_json
 
-    user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo)
+    userid = SSO_CONFIG[provider]["functions"]["userid"](userinfo_json)
+    user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo_json)
     REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
 
     if "redirect_after_login" in session:
