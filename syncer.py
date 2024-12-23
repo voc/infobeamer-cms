@@ -72,7 +72,7 @@ def asset_to_tiles(asset: Asset):
                     "font_size": 25,
                     "fade_time": FADE_TIME,
                     "text": "Project by @{user} - visit {url} to share your own.".format(
-                        user=asset.user,
+                        user=asset.username,
                         url=CONFIG["DOMAIN"],
                     ),
                     "color": "#dddddd",
