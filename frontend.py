@@ -144,7 +144,7 @@ def login_providers():
     result = {}
 
     for provider, config in CONFIG["oauth2_providers"].items():
-        result[provider] = config.get("display_name", provider.capitalize())
+        result[provider] = SSO_CONFIG[provider]["display_name"]
 
     return {"login_providers": result}
 
