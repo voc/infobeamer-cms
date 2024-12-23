@@ -18,7 +18,7 @@ def check_c3voc_allowed_login(userinfo_json):
 
 
 def check_c3voc_is_admin(userinfo_json):
-    return "signage-admins" in userinfo_json["groups"]
+    return "signage-admin" in userinfo_json["groups"]
 
 
 def check_c3voc_no_limit(userinfo_json):
