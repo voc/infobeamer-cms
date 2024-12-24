@@ -1,3 +1,6 @@
+from conf import CONFIG
+
+
 def get_c3hub_userid(userinfo_json):
     return "c3hub:{}".format(userinfo_json["username"])
 
