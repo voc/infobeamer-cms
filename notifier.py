@@ -2,9 +2,11 @@ from json import dumps
 from logging import getLogger
 
 import paho.mqtt.client as mqtt
+from flask import url_for
 from requests import post
 
 from conf import CONFIG
+from util import cached_asset_name
 
 LOG = getLogger("Notifier")
 
@@ -22,7 +24,7 @@ class Notifier:
                     self.config["MQTT_USERNAME"], self.config["MQTT_PASSWORD"]
                 )
 
-    def message(self, message, level="INFO", component=None):
+    def message(self, message, level="INFO", component=None, asset=None):
         LOG.debug(f"{message=} {level=} {component=}")
         if self.mqtt:
             try:
@@ -32,7 +34,7 @@ class Notifier:
 
         for ntfy_url in self.config.get("NTFY", set()):
             try:
-                self._ntfy_message(ntfy_url, message)
+                self._ntfy_message(ntfy_url, message, asset)
             except Exception:
                 LOG.exception(f"ntfy url {ntfy_url} failed sending")
 
@@ -59,12 +61,22 @@ class Notifier:
 
         LOG.info("sent mqtt message")
 
-    def _ntfy_message(self, ntfy_url, message):
+    def _ntfy_message(self, ntfy_url, message, asset):
         LOG.info(f"sending alert to {ntfy_url} with message {message!r}")
+
+        headers = {}
+        if asset is not None:
+            headers["Click"] = url_for(
+                "content_moderate", asset_id=asset.id, _external=True
+            )
+            headers["Attach"] = url_for(
+                "static", filename=cached_asset_name(asset), _external=True
+            )
 
         r = post(
             ntfy_url,
             data=str(message).encode("utf-8"),
+            headers=headers,
         )
         r.raise_for_status()
 

@@ -43,6 +43,7 @@ from util import (
     get_user_assets,
     is_within_timeframe,
     login_required,
+    parse_asset,
 )
 from util.redis import REDIS
 from util.sso import DEFAULT_SSO_PROVIDER, SSO_CONFIG
@@ -457,7 +458,7 @@ def content_request_review(asset_id):
         moderation_message += f"Check it at {moderation_url}"
 
     n = Notifier()
-    n.message(moderation_message)
+    n.message(moderation_message, asset=parse_asset(asset))
 
     return jsonify(ok=True)
 
