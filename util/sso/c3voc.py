@@ -6,10 +6,6 @@ def get_c3voc_username(userinfo_json):
     return "{} (C3VOC)".format(userinfo_json["preferred_username"])
 
 
-def check_c3voc_allowed_login(userinfo_json):
-    return True
-
-
 def check_c3voc_is_admin(userinfo_json):
     return "signage-admin" in userinfo_json["groups"]
 

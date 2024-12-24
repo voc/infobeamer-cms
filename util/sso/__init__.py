@@ -40,7 +40,7 @@ SSO_CONFIG = {
         "challenge_instead_of_state": False,
         "functions": {
             "is_admin": check_c3voc_is_admin,
-            "login_allowed": check_c3voc_allowed_login,
+            "login_allowed": lambda json: True,
             "no_limit": check_c3voc_no_limit,
             "userid": get_c3voc_userid,
             "username": get_c3voc_username,
