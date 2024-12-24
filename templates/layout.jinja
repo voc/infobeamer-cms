@@ -38,8 +38,8 @@
             </a></li>
             <li><a href="{{ url_for("logout") }}">Logout</a></li>
           {% else %}
-            {% for slug, name in login_providers.items() %}
-              <li><a href="{{ url_for("login", provider=slug) }}">Login / Sign up using {{ name }}</a></li>
+            {% for slug, name in sso_providers.items() %}
+              <li><a href="{{ url_for("login", provider=slug) }}"{% if slug==default_sso_provider %} style="font-weight: bolder;"{% endif %}>Login / Sign up using {{ name }}</a></li>
             {% endfor %}
           {% endif %}
         </ul>
@@ -61,11 +61,9 @@
       <hr/>
       <div class='text-centered'>
         <p>
-          Share your projects via info-beamer.
-          <a href="{{ url_for("faq") }}">FAQ / Contact</a>.
-        </p>
-        <p>
-          Screens run <a href='https://info-beamer.com'><img src="{{ url_for("static", filename="logo.png") }}">info-beamer</a> on Raspberry Pis.
+          <a href="{{ url_for("faq") }}">FAQ / Contact</a> |
+          <a href="{{ source_url }}">This project is open source</a> |
+          Screens run <a href="https://info-beamer.com"><img src="{{ url_for("static", filename="logo.png") }}">info-beamer</a> on Raspberry Pis.
         <br/><br/>
       </div>
     </div>

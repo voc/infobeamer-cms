@@ -43,6 +43,7 @@ from util import (
     get_user_assets,
     is_within_timeframe,
     login_required,
+    DEFAULT_SSO_PROVIDER,
 )
 from util.redis import REDIS
 from util.sso import SSO_CONFIG
@@ -144,27 +145,23 @@ def before_request():
 
 
 @app.context_processor
-def login_providers():
-    result = {}
-
-    for provider, config in CONFIG["oauth2_providers"].items():
-        result[provider] = SSO_CONFIG[provider]["display_name"]
-
-    return {"login_providers": result}
-
-
-@app.context_processor
-def start_time_alert():
-    # if g.user is set, the user was successfully logged in (see above)
-    if g.userid:
-        return {"start_time": None}
+def layout_context_variables():
+    result = {
+        "default_sso_provider": DEFAULT_SSO_PROVIDER,
+        "source_url": CONFIG["FAQ"]["SOURCE"],
+        "sso_providers": {},
+        "start_time": {},
+    }
 
     start_time = datetime.fromtimestamp(CONFIG["TIME_MIN"], timezone.utc)
 
-    if start_time < datetime.now(timezone.utc):
-        return {"start_time": None}
+    for provider, config in CONFIG["oauth2_providers"].items():
+        result["sso_providers"][provider] = SSO_CONFIG[provider]["display_name"]
 
-    return {"start_time": start_time.strftime("%F %T")}
+    if not g.userid and start_time > datetime.now(timezone.utc):
+        result["start_time"] = start_time.strftime("%F %T")
+
+    return result
 
 
 @app.route("/login/<provider>")
