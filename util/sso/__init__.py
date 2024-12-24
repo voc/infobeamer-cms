@@ -1,4 +1,5 @@
 from conf import CONFIG
+from util.sso.c3hub import get_c3hub_userid, get_c3hub_username
 from util.sso.c3voc import (
     check_c3voc_allowed_login,
     check_c3voc_is_admin,
@@ -15,6 +16,20 @@ from util.sso.github import (
 )
 
 SSO_CONFIG = {
+    "c3hub": {
+        "display_name": "38C3 Hub",
+        "authorize_url": "https://events.ccc.de/congress/2024/hub/sso/authorize",
+        "token_url": "https://events.ccc.de/congress/2024/hub/sso/token",
+        "scopes": [],
+        "userinfo_url": "https://api.events.ccc.de/congress/2024/me",
+        "functions": {
+            "is_admin": lambda json: False,
+            "login_allowed": lambda json: True,
+            "no_limit": lambda json: False,
+            "userid": get_c3hub_userid,
+            "username": get_c3hub_username,
+        },
+    },
     "c3voc": {
         "display_name": "C3VOC",
         "authorize_url": "https://sso.c3voc.de/application/o/authorize/",
