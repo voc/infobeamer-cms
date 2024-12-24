@@ -257,7 +257,7 @@ def oauth2_callback(provider):
     userinfo_json = r.json()
 
     if not SSO_CONFIG[provider]["functions"]["login_allowed"](userinfo_json):
-        flash("You are not allowed to log in at this time.", "warning")
+        flash("You are not allowed to log in.", "warning")
         return redirect(url_for("faq", _anchor="signup"))
 
     userid = SSO_CONFIG[provider]["functions"]["userid"](userinfo_json)
@@ -266,7 +266,8 @@ def oauth2_callback(provider):
     REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
 
     if not (user_is_admin or user_without_limits or is_within_timeframe()):
-        return render_template("time_error.jinja")
+        flash("You are trying to log in outside the configured time frame.", "warning")
+        return redirect(url_for("index"))
 
     session["oauth2_provider"] = provider
     session["oauth2_userinfo"] = userinfo_json
