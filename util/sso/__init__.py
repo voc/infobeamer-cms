@@ -1,5 +1,5 @@
 from conf import CONFIG
-from util.sso.c3hub import get_c3hub_userid, get_c3hub_username
+from util.sso.c3hub import check_c3hub_no_limit, get_c3hub_userid, get_c3hub_username
 from util.sso.c3voc import (
     check_c3voc_allowed_login,
     check_c3voc_is_admin,
@@ -26,7 +26,7 @@ SSO_CONFIG = {
         "functions": {
             "is_admin": lambda json: False,
             "login_allowed": lambda json: True,
-            "no_limit": lambda json: False,
+            "no_limit": check_c3hub_no_limit,
             "userid": get_c3hub_userid,
             "username": get_c3hub_username,
         },
