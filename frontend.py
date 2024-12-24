@@ -231,13 +231,17 @@ def oauth2_callback(provider):
         "grant_type": "authorization_code",
         "redirect_uri": url_for("oauth2_callback", provider=provider, _external=True),
     }
+    headers = {
+        "Accept": "application/json",
+    }
     if SSO_CONFIG[provider]["challenge_instead_of_state"]:
         params["code_verifier"] = session["oauth2_state"]
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
     r = requests.post(
         SSO_CONFIG[provider]["token_url"],
         data=params,
-        headers={"Accept": "application/json"},
+        headers=headers,
     )
     if r.status_code != 200:
         abort(400)
