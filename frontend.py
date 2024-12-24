@@ -241,12 +241,16 @@ def oauth2_callback(provider):
         flash("You are not allowed to log in at this time.", "warning")
         return redirect(url_for("faq", _anchor="signup"))
 
-    session["oauth2_provider"] = provider
-    session["oauth2_userinfo"] = userinfo_json
-
     userid = SSO_CONFIG[provider]["functions"]["userid"](userinfo_json)
     user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo_json)
+    user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo_json)
     REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
+
+    if not (user_is_admin or user_without_limits or is_within_timeframe()):
+        return render_template("time_error.jinja")
+
+    session["oauth2_provider"] = provider
+    session["oauth2_userinfo"] = userinfo_json
 
     if "redirect_after_login" in session:
         return redirect(session["redirect_after_login"])
