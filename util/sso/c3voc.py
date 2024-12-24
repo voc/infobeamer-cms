@@ -1,11 +1,3 @@
-from datetime import datetime, timezone
-from logging import getLogger
-
-from conf import CONFIG
-
-LOG = getLogger("SSO-C3VOC")
-
-
 def get_c3voc_userid(userinfo_json):
     return "c3voc:{}".format(userinfo_json["preferred_username"])
 
