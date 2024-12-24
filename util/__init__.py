@@ -165,8 +165,8 @@ def is_within_timeframe():
     return CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"]
 
 
-def get_random(size=16):
-    return "".join("%02x" % random.getrandbits(8) for i in range(size))
+def get_random():
+    return "".join("%02x" % random.getrandbits(8) for i in range(64))
 
 
 def cached_asset_name(asset: Asset):

@@ -20,8 +20,9 @@ SSO_CONFIG = {
         "display_name": "38C3 Hub",
         "authorize_url": "https://events.ccc.de/congress/2024/hub/sso/authorize",
         "token_url": "https://events.ccc.de/congress/2024/hub/sso/token",
-        "scopes": [],
+        "scopes": ["38c3_attendee"],
         "userinfo_url": "https://api.events.ccc.de/congress/2024/me",
+        "challenge_instead_of_state": True,
         "functions": {
             "is_admin": lambda json: False,
             "login_allowed": lambda json: True,
@@ -36,6 +37,7 @@ SSO_CONFIG = {
         "token_url": "https://sso.c3voc.de/application/o/token/",
         "scopes": ["openid", "profile", "groups"],
         "userinfo_url": "https://sso.c3voc.de/application/o/userinfo/",
+        "challenge_instead_of_state": False,
         "functions": {
             "is_admin": check_c3voc_is_admin,
             "login_allowed": check_c3voc_allowed_login,
@@ -50,6 +52,7 @@ SSO_CONFIG = {
         "token_url": "https://github.com/login/oauth/access_token",
         "scopes": [],
         "userinfo_url": "https://api.github.com/user",
+        "challenge_instead_of_state": False,
         "functions": {
             "is_admin": check_github_is_admin,
             "login_allowed": check_github_allowed_login,

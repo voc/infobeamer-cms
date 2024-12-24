@@ -14,7 +14,7 @@ class RedisSession(sessions.CallbackDict, sessions.SessionMixin):
         sessions.CallbackDict.__init__(self, initial, on_update)
         self.modified = False
         self.new_sid = not sid
-        self.sid = sid or get_random(32)
+        self.sid = sid or get_random()
 
 
 class RedisSessionStore(sessions.SessionInterface):

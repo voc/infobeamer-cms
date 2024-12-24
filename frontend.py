@@ -1,7 +1,9 @@
 import random
 import socket
+from base64 import urlsafe_b64encode
 from collections import defaultdict
 from datetime import datetime, timezone
+from hashlib import sha256
 from secrets import token_hex
 from typing import Iterable
 from urllib.parse import urlencode
@@ -176,18 +178,27 @@ def login(provider):
 
     session["oauth2_state"] = state = get_random()
 
-    qs = urlencode(
-        {
-            "client_id": provider_config["client_id"],
-            "redirect_uri": url_for(
-                "oauth2_callback", provider=provider, _external=True
-            ),
-            "response_type": "code",
-            "scope": " ".join(SSO_CONFIG[provider]["scopes"]),
-            "state": state,
-        }
+    params = {
+        "client_id": provider_config["client_id"],
+        "redirect_uri": url_for("oauth2_callback", provider=provider, _external=True),
+        "response_type": "code",
+        "scope": " ".join(SSO_CONFIG[provider]["scopes"]),
+    }
+    extra_args = ""
+
+    if SSO_CONFIG[provider]["challenge_instead_of_state"]:
+        challenge = sha256(state.encode("utf-8")).digest()
+        challenge = urlsafe_b64encode(challenge).decode("utf-8").replace("=", "")
+        extra_args = f"&code_challenge={challenge}"
+        params["code_challenge_method"] = "S256"
+    else:
+        params["state"] = state
+
+    return redirect(
+        "{}?{}{}".format(
+            SSO_CONFIG[provider]["authorize_url"], urlencode(params), extra_args
+        )
     )
-    return redirect("{}?{}".format(SSO_CONFIG[provider]["authorize_url"], qs))
 
 
 @app.route("/login/callback/<provider>")
@@ -205,23 +216,27 @@ def oauth2_callback(provider):
                 flash(f"{k}: {v}", "danger")
         return redirect(url_for("index"))
 
-    if request.args["state"] != session.get("oauth2_state"):
+    if not SSO_CONFIG[provider]["challenge_instead_of_state"] and request.args[
+        "state"
+    ] != session.get("oauth2_state"):
         abort(401)
 
     if "code" not in request.args:
         abort(400)
 
+    params = {
+        "client_id": provider_config["client_id"],
+        "client_secret": provider_config["client_secret"],
+        "code": request.args["code"],
+        "grant_type": "authorization_code",
+        "redirect_uri": url_for("oauth2_callback", provider=provider, _external=True),
+    }
+    if SSO_CONFIG[provider]["challenge_instead_of_state"]:
+        params["code_verifier"] = session["oauth2_state"]
+
     r = requests.post(
         SSO_CONFIG[provider]["token_url"],
-        data={
-            "client_id": provider_config["client_id"],
-            "client_secret": provider_config["client_secret"],
-            "code": request.args["code"],
-            "grant_type": "authorization_code",
-            "redirect_uri": url_for(
-                "oauth2_callback", provider=provider, _external=True
-            ),
-        },
+        data=params,
         headers={"Accept": "application/json"},
     )
     if r.status_code != 200:
