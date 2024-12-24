@@ -15,31 +15,31 @@
     <nav class="navbar navbar-default navbar-expand">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">
-            <img src='{{url_for('static', filename='event-logo.png')}}'>
+          <a class="navbar-brand" href="{{ url_for("index") }}">
+            <img src="{{url_for('static', filename='event-logo.png')}}">
           </a>
-          <a class="navbar-brand" href="/">
+          <a class="navbar-brand" href="{{ url_for("index") }}">
             Share your projects
           </a>
         </div>
         <ul class="nav navbar-nav">
-          <li {%if request.path=="/"%}class="active"{%endif%}><a href="/">
+          <li {%if request.path==url_for("index")%}class="active"{%endif%}><a href="{{ url_for("index") }}">
             All projects
           </a></li>
-          <li {%if request.path=="/faq"%}class="active"{%endif%}><a href="/faq">
+          <li {%if request.path==url_for("faq")%}class="active"{%endif%}><a href="{{ url_for("faq") }}">
             FAQ / Contact
           </a></li>
           <li><a href="{{ url_for("slideshow") }}">Slideshow</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           {% if g.userid %}
-            <li {%if request.path=="/dashboard"%}class="active"{%endif%}><a href="/dashboard">
+            <li {%if request.path==url_for("dashboard")%}class="active"{%endif%}><a href="{{ url_for("dashboard") }}">
               {{g.username}}'s projects
             </a></li>
-            <li><a href="/logout">Logout</a></li>
+            <li><a href="{{ url_for("logout") }}">Logout</a></li>
           {% else %}
             {% for slug, name in login_providers.items() %}
-              <li><a href="/login/{{ slug }}">Login / Sign up using {{ name }}</a></li>
+              <li><a href="{{ url_for("login", provider=slug) }}">Login / Sign up using {{ name }}</a></li>
             {% endfor %}
           {% endif %}
         </ul>
@@ -62,10 +62,10 @@
       <div class='text-centered'>
         <p>
           Share your projects via info-beamer.
-          <a href='/faq'>FAQ / Contact</a>.
+          <a href="{{ url_for("faq") }}">FAQ / Contact</a>.
         </p>
         <p>
-          Screens run <a href='https://info-beamer.com'><img src="/static/logo.png">info-beamer</a> on Raspberry Pis.
+          Screens run <a href='https://info-beamer.com'><img src="{{ url_for("static", filename="logo.png") }}">info-beamer</a> on Raspberry Pis.
         <br/><br/>
       </div>
     </div>
