@@ -11,15 +11,9 @@ import requests
 from flask import abort, current_app, g, jsonify, redirect, request, session, url_for
 
 from conf import CONFIG
+from util.sso import DEFAULT_ADMIN_SSO_PROVIDER, DEFAULT_SSO_PROVIDER
 
 from .ib_hosted import ib
-
-DEFAULT_SSO_PROVIDER = CONFIG.get(
-    "DEFAULT_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
-)
-DEFAULT_ADMIN_SSO_PROVIDER = CONFIG.get(
-    "DEFAULT_ADMIN_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
-)
 
 
 def error(msg):

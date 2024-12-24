@@ -43,10 +43,9 @@ from util import (
     get_user_assets,
     is_within_timeframe,
     login_required,
-    DEFAULT_SSO_PROVIDER,
 )
 from util.redis import REDIS
-from util.sso import SSO_CONFIG
+from util.sso import DEFAULT_SSO_PROVIDER, SSO_CONFIG
 
 app = Flask(
     __name__,
