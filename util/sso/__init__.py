@@ -1,7 +1,6 @@
 from conf import CONFIG
 from util.sso.c3hub import check_c3hub_no_limit, get_c3hub_userid, get_c3hub_username
 from util.sso.c3voc import (
-    check_c3voc_allowed_login,
     check_c3voc_is_admin,
     check_c3voc_no_limit,
     get_c3voc_userid,
