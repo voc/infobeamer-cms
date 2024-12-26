@@ -377,14 +377,12 @@ def content_upload():
         "Boolean": {
             "asset:exists": False,
         },
+        "NumericEquals": {
+            "asset:metadata:width": 1920,
+            "asset:metadata:height": 1080,
+        },
     }
     if filetype == "image":
-        condition.setdefault("NumericEquals", {}).update(
-            {
-                "asset:metadata:width": 1920,
-                "asset:metadata:height": 1080,
-            }
-        )
         condition.setdefault("StringEquals", {}).update(
             {
                 "asset:metadata:format": "jpeg",
