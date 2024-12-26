@@ -4,7 +4,7 @@ Vue.component('moderate', {
   template: `
     <div>
       <h2>
-        Upload by <a :href='"https://github.com/" + asset.user'>{{asset.user}}</a>
+        Upload by {{asset.username}}
       </h2>
       <div class='embed-responsive embed-responsive-16by9' v-if='asset.filetype == "video"'>
         <video class="embed-responsive-item" width="1920" height="1080" controls autoplay loop muted>
@@ -16,6 +16,7 @@ Vue.component('moderate', {
       <template v-if='needs_moderation'>
         <p class='text-centered'>
           Current state: <strong>{{asset.state}}</strong><br>
+          Moderated by: <strong>{{asset.moderated_by}}</strong><br>
           Start time: <strong>{{epoch2String(asset.starts)}}</strong><br>
           End time: <strong>{{epoch2String(asset.ends)}}</strong>
         </p>
