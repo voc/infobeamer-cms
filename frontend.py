@@ -430,7 +430,7 @@ def content_request_review(asset_id):
     )
 
     if g.user_is_admin:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by="ADMIN")
         app.logger.warn(
             "auto-confirming {} because it was uploaded by admin {}".format(
                 asset["id"], g.username
@@ -438,7 +438,7 @@ def content_request_review(asset_id):
         )
         moderation_message += "It was automatically confirmed because user is an admin."
     elif g.user_without_limits:
-        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
+        update_asset_userdata(asset, state=State.CONFIRMED, moderated_by="NO-LIMIT")
         app.logger.warn(
             "auto-confirming {} because it was uploaded by no-limits user {}".format(
                 asset["id"], g.username
