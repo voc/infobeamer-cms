@@ -118,8 +118,8 @@ def parse_asset(asset):
     )
 
 
-def get_asset(id):
-    return parse_asset(ib.get(f"asset/{id}"))
+def get_asset(asset_id):
+    return parse_asset(ib.get(f"asset/{asset_id}"))
 
 
 def get_assets(cached=False):
@@ -147,10 +147,7 @@ def get_all_live_assets(no_time_filter=False):
         asset
         for asset in get_assets(cached=True)
         if asset.state in (State.CONFIRMED,)
-        and (
-            no_time_filter
-            or ((asset.starts or now) <= now and (asset.ends or now) >= now)
-        )
+        and (no_time_filter or ((asset.starts or now) <= now <= (asset.ends or now)))
     ]
 
 
@@ -160,7 +157,7 @@ def is_within_timeframe():
 
 
 def get_random():
-    return "".join("%02x" % random.getrandbits(8) for i in range(64))
+    return "".join("%02x" % random.getrandbits(8) for _ in range(64))
 
 
 def cached_asset_name(asset: Asset):

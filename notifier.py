@@ -61,7 +61,8 @@ class Notifier:
 
         LOG.info("sent mqtt message")
 
-    def _ntfy_message(self, ntfy_url, message, asset):
+    @staticmethod
+    def _ntfy_message(ntfy_url, message, asset):
         LOG.info(f"sending alert to {ntfy_url} with message {message!r}")
 
         headers = {}
