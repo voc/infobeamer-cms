@@ -13,6 +13,12 @@ from util.sso.github import (
     get_github_userid,
     get_github_username,
 )
+from util.sso.google import (
+    check_google_is_admine,
+    check_google_no_limit,
+    get_google_userid,
+    get_google_usernam,
+)
 
 SSO_CONFIG = {
     "c3hub": {
@@ -58,6 +64,25 @@ SSO_CONFIG = {
             "no_limit": check_github_no_limit,
             "userid": get_github_userid,
             "username": get_github_username,
+        },
+    },
+    "google": {
+        "display_name": "Google",
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": " https://oauth2.googleapis.com/token",
+        "scopes": [
+            "https://www.googleapis.com/auth/userinfo.email",
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.profile",
+        ],
+        "userinfo_url": "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
+        "challenge_instead_of_state": False,
+        "functions": {
+            "is_admin": check_google_is_admin,
+            "login_allowed": lambda json: True,
+            "no_limit": check_google_no_limit,
+            "userid": get_google_userid,
+            "username": get_google_username,
         },
     },
 }
