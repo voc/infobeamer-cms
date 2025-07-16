@@ -14,10 +14,10 @@ from util.sso.github import (
     get_github_username,
 )
 from util.sso.google import (
-    check_google_is_admine,
+    check_google_is_admin,
     check_google_no_limit,
     get_google_userid,
-    get_google_usernam,
+    get_google_username,
 )
 
 SSO_CONFIG = {
