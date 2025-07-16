@@ -16,7 +16,7 @@ for i in ("ADMIN_USERS", "NO_LIMIT_USERS", "SETUP_IDS"):
         CONFIG[i] = []
 
 if "NOTIFIER" not in CONFIG:
-    CONFIG["notifier"] = {}
+    CONFIG["NOTIFIER"] = {}
 
 logging.basicConfig(
     format="[%(levelname)s %(name)s] %(message)s",
