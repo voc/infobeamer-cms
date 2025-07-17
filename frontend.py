@@ -1,3 +1,4 @@
+import os
 import random
 import socket
 from base64 import urlsafe_b64encode
@@ -34,6 +35,7 @@ from redis_session import RedisSessionStore
 from util import (
     State,
     admin_required,
+    cached_asset_name,
     error,
     get_all_live_assets,
     get_asset,
@@ -547,6 +549,13 @@ def content_delete(asset_id):
         return error("Cannot delete")
 
     try:
+        asset_filename = cached_asset_name(parse_asset(asset))
+        if asset_filename:
+            asset_path = os.path.join(
+                CONFIG.get("STATIC_PATH", "static"), asset_filename
+            )
+            if os.path.exists(asset_path):
+                os.remove(asset_path)
         update_asset_userdata(asset, state=State.DELETED)
     except Exception as e:
         app.logger.error(f"content_delete({asset_id}) {repr(e)}")

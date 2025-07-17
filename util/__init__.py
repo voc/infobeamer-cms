@@ -164,6 +164,9 @@ def get_random():
 
 
 def cached_asset_name(asset: Asset):
+    if asset.state == State.DELETED:
+        return None
+
     asset_id = asset.id
     filename = "asset-{}.{}".format(
         asset_id,
