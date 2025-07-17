@@ -38,6 +38,12 @@ class Notifier:
             except Exception:
                 LOG.exception(f"ntfy url {ntfy_url} failed sending")
 
+        for webhook_url in self.config.get("GCHAT", set()):
+            try:
+                self._googlechat_webhook(webhook_url, message)
+            except Exception:
+                LOG.exception(f"googlechat webhook url {webhook_url} failed sending")
+
     def _mqtt_message(self, message, level, component_suffix):
         assert self.mqtt is not None
 
@@ -82,3 +88,17 @@ class Notifier:
         r.raise_for_status()
 
         LOG.info(f"ntfy url {ntfy_url} returned {r.status_code}")
+
+    @staticmethod
+    def _googlechat_webhook(webhook_url, message):
+        LOG.info(f"sending message to {webhook_url} with message {message!r}")
+
+        r = post(
+            webhook_url,
+            json={
+                "text": message,
+            },
+        )
+        r.raise_for_status()
+
+        LOG.info(f"sent message to {webhook_url}")

@@ -32,7 +32,7 @@ Vue.component('list-last', {
             <img :src='proof.thumb + "?size=194&crop=none"'>
           </a>
           <small>
-            <a :href='"https://github.com/" + proof.user'>{{proof.user}}</a>,
+            {{proof.username}},
             {{now - proof.shown|floor}}s ago
           </small>
         </p>

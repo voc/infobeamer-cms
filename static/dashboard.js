@@ -215,6 +215,9 @@ Vue.component('asset-box', {
     make_timerange_option(min, max, unset) {
       let options = [[null, unset]]
       const config = window.config
+      if (config.TIME_MIN == 0 || config.TIME_MAX == 0) {
+        return options;
+      }
       const now = Math.floor(Date.now() / 1000)
       // const start = Math.floor(Math.max(config.TIME_MIN, now, min || now) / 3600) * 3600
       // const end = Math.min(config.TIME_MAX, max || config.TIME_MAX)
@@ -253,14 +256,14 @@ const Index = Vue.component('index', {
         </div>
       </template>
       <div class='alert alert-info' v-else>
-        No projects yet.
+        No content yet.
       </div>
       <button @click='upload' class='btn btn-primary' :disabled='busy'>
         Upload FullHD JPG or 10s H264 video..
       </button>
       <br>
       The bottom 40 pixels of your content will be overlayed by a bar
-      showing your github username and will therefore not be visible.
+      showing your username and will therefore not be visible.
       Your project image/video <b>must</b> include a way to reach you
       during this event. If you're getting "Access denied" errors,
       double check that your file matches the specifications.

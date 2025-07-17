@@ -152,6 +152,9 @@ def get_all_live_assets(no_time_filter=False):
 
 
 def is_within_timeframe():
+    if CONFIG["TIME_MIN"] == CONFIG["TIME_MAX"] == 0:
+        # if both min and max time are zero, consider the event to be always open
+        return True
     now = datetime.now(timezone.utc).timestamp()
     return CONFIG["TIME_MIN"] < now < CONFIG["TIME_MAX"]
 
@@ -161,6 +164,9 @@ def get_random():
 
 
 def cached_asset_name(asset: Asset):
+    if asset.state == State.DELETED:
+        return None
+
     asset_id = asset.id
     filename = "asset-{}.{}".format(
         asset_id,
