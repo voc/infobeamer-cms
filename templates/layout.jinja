@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Infobeamer-CMS{% endblock %} - Share your projects</title>
+    <title>{% block title %}Infobeamer-CMS{% endblock %}</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='event-logo.png') }}">
     <link rel="stylesheet" href="{{url_for('static', filename='bootstrap.min.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='notyf.min.css')}}">
@@ -19,12 +19,12 @@
             <img src="{{url_for('static', filename='event-logo.png')}}">
           </a>
           <a class="navbar-brand" href="{{ url_for("index") }}">
-            Share your projects
+            Share your content
           </a>
         </div>
         <ul class="nav navbar-nav">
           <li {%if request.path==url_for("index")%}class="active"{%endif%}><a href="{{ url_for("index") }}">
-            All projects
+            All content
           </a></li>
           <li {%if request.path==url_for("faq")%}class="active"{%endif%}><a href="{{ url_for("faq") }}">
             FAQ / Contact
@@ -34,7 +34,7 @@
         <ul class="nav navbar-nav navbar-right">
           {% if g.userid %}
             <li {%if request.path==url_for("dashboard")%}class="active"{%endif%}><a href="{{ url_for("dashboard") }}">
-              {{g.username}}'s projects
+              {{g.username}}'s content
             </a></li>
             <li><a href="{{ url_for("logout") }}">Logout</a></li>
           {% else %}
