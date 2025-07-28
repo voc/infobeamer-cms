@@ -53,7 +53,11 @@ def asset_to_tiles(asset: Asset):
         # somehow, writing "1" into redis makes it return bytes instead
         # of a string?
         user_is_admin = user_is_admin.decode()
+
     if user_is_admin != "1":
+        user_is_admin = asset.userid in CONFIG['ADMIN_USERS']
+
+    if user_is_admin not in ("1", True):
         tiles.append(
             {
                 "type": "flat",
