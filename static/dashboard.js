@@ -127,7 +127,7 @@ Vue.component('asset-box', {
   template: `
     <div class='asset-box panel panel-default'>
       <div class='panel-heading'>
-        Project
+        Submission
       </div>
       <div class='panel-body'>
         <img class='img-responsive' :src='asset.thumb + "?w=328&h=191&crop=none"'>
@@ -256,18 +256,16 @@ const Index = Vue.component('index', {
         </div>
       </template>
       <div class='alert alert-info' v-else>
-        No content yet.
+        No submissions yet.
       </div>
       <button @click='upload' class='btn btn-primary' :disabled='busy'>
-        Upload FullHD JPG or 10s H264 video..
+        Upload FullHD (1920x1080) JPG or 10s H264 video..
       </button>
       <br>
-      The bottom 40 pixels of your content will be overlayed by a bar
-      showing your username and will therefore not be visible.
-      Your project image/video <b>must</b> include a way to reach you
-      during this event. If you're getting "Access denied" errors,
-      double check that your file matches the specifications.
-      <a href='/faq'>Read the FAQ..</a>
+      The bottom 40 pixels of your submission will be overlayed by a bar
+      showing your username and will therefore not be visible. If you're
+      getting "Access denied" errors, double check that your file matches
+      the specifications. <a href='/faq'>Read the FAQ...</a>
     </div>
   `,
   computed: {

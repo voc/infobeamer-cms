@@ -4,7 +4,7 @@ Vue.component('asset-preview', {
   template: `
     <div class='asset-live panel panel-default'>
       <div class='panel-heading'>
-        Project by {{asset.username}}
+        Submission by {{asset.username}}
       </div>
       <div class='panel-body'>
         <a :href='asset.url' target="_blank">
