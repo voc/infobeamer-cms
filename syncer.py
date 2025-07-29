@@ -8,7 +8,7 @@ from notifier import Notifier
 from util import Asset, State, get_all_live_assets, get_assets
 from util.redis import REDIS
 
-FADE_TIME = 0.5
+FADE_TIME = CONFIG.get("FADE_TIME", 0.5)
 SLIDE_TIME = 10
 log = getLogger("Syncer")
 

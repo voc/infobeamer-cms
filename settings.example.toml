@@ -48,6 +48,9 @@ TIME_MAX = 1640905200
 # change this to invalidate cached static files.
 VERSION = 1
 
+# configure fade in/out time for slides
+FADE_TIME = 0.5
+
 
 # Push notifications for moderation requests. Supports MQTT with a
 # c3voc-style notification client and [NTFY](https://ntfy.sh/).
