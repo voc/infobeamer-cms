@@ -73,7 +73,7 @@ def asset_to_tiles(asset: Asset):
             {
                 "type": "markup",
                 "asset": "default-font.ttf",
-                "x1": 150,
+                "x1": 10,
                 "y1": 1048,
                 "x2": 1900,
                 "y2": 1080,
