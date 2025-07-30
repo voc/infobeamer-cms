@@ -226,7 +226,7 @@ Vue.component('asset-box', {
           options.push([min, text_string]);
         }
 
-        const start = Math.floor((Date.now() / 3600) * 3.6);
+        const start = Math.floor(Date.now() / 86400000) * 86400;
         const end = Math.floor(start + (30 * 86400));
         for (let ts = start; ts <= end; ts += 86400) {
           const date = new Date(ts * 1000);
