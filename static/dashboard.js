@@ -213,24 +213,45 @@ Vue.component('asset-box', {
   },
   methods: {
     make_timerange_option(min, max, unset) {
-      let options = [[null, unset]]
-      const config = window.config
-      if (config.TIME_MIN == 0 || config.TIME_MAX == 0) {
-        return options;
+      let options = [[null, unset]];
+      const config = window.config;
+      const zfill = function (v) {
+        return (v + '').length <= 1 ? '0' + v : v;
+      };
+      if (config.TIME_MIN === 0 || config.TIME_MAX === 0) {
+        if (min !== null) {
+          const date = new Date(min * 1000);
+          const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth() + 1) + '. - ' +
+              zfill(date.getHours()) + ':00';
+          options.push([min, text_string]);
+        }
+
+        const start = Math.floor((Date.now() / 3600) * 3.6);
+        const end = Math.floor(start + (30 * 86400));
+        for (let ts = start; ts <= end; ts += 86400) {
+          const date = new Date(ts * 1000);
+          const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth()+1) + '. - 00:00';
+          options.push([ts, text_string]);
+        }
+
+        if (max !== null) {
+          const date = new Date(max * 1000);
+          const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth()+1) + '. - ' +
+                              zfill(date.getHours()) + ':00';
+          options.push([min, text_string]);
+        }
+      } else {
+        const now = Math.floor(Date.now() / 1000);
+        const start = Math.floor(config.TIME_MIN / 3600) * 3600;
+        const end = config.TIME_MAX;
+        for (let ts = start; ts <= end; ts += 3600) {
+          const date = new Date(ts * 1000);
+          const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth() + 1) + '. - ' +
+              zfill(date.getHours()) + ':00';
+          options.push([ts, text_string]);
+        }
       }
-      const now = Math.floor(Date.now() / 1000)
-      // const start = Math.floor(Math.max(config.TIME_MIN, now, min || now) / 3600) * 3600
-      // const end = Math.min(config.TIME_MAX, max || config.TIME_MAX)
-      const start = Math.floor(config.TIME_MIN / 3600) * 3600
-      const end = config.TIME_MAX
-      const zfill = v => (v+'').length <= 1 ? '0' + v : v
-      for (let ts = start; ts <= end; ts += 3600) {
-        const date = new Date(ts * 1000)
-        const text_string = zfill(date.getDate()) + '.' + zfill(date.getMonth()+1) + '. - ' +
-                            zfill(date.getHours()) + ':00'
-        options.push([ts, text_string])
-      }
-      return options
+      return options;
     },
     review() {
       this.$store.dispatch('review_asset', {
