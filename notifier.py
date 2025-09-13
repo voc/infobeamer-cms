@@ -44,6 +44,12 @@ class Notifier:
             except Exception:
                 LOG.exception(f"googlechat webhook url {webhook_url} failed sending")
 
+        for webhook_url in self.config.get("MATTERMOST", set()):
+            try:
+                self._mattermost_webhook(webhook_url, message, asset)
+            except Exception:
+                LOG.exception(f"mattermost webhook url {webhook_url} failed sending")
+
     def _mqtt_message(self, message, level, component_suffix):
         assert self.mqtt is not None
 
@@ -98,6 +104,32 @@ class Notifier:
             json={
                 "text": message,
             },
+        )
+        r.raise_for_status()
+
+        LOG.info(f"sent message to {webhook_url}")
+
+    @staticmethod
+    def _mattermost_webhook(webhook_url, message, asset):
+        LOG.info(f"sending message to {webhook_url} with message {message!r}")
+
+        data = {
+            "icon_url": url_for("static", filename="event-logo.png", _external=True),
+        }
+        if asset is not None:
+            data['attachments'] = [
+                {
+                    "image_url": asset.thumb,
+                    "text": message,
+                    "fallback": message,
+                },
+            ]
+        else:
+            data['text'] = message
+
+        r = post(
+            webhook_url,
+            json=data,
         )
         r.raise_for_status()
 
