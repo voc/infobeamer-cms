@@ -22,11 +22,11 @@ from util.sso.google import (
 
 SSO_CONFIG = {
     "c3hub": {
-        "display_name": "38C3 Hub",
-        "authorize_url": "https://events.ccc.de/congress/2024/hub/sso/authorize/",
-        "token_url": "https://events.ccc.de/congress/2024/hub/sso/token/",
-        "scopes": ["38c3_attendee"],
-        "userinfo_url": "https://api.events.ccc.de/congress/2024/me",
+        "display_name": "39C3 Hub",
+        "authorize_url": "https://events.ccc.de/congress/2025/hub/sso/authorize/",
+        "token_url": "https://events.ccc.de/congress/2025/hub/sso/token/",
+        "scopes": ["39c3_attendee"],
+        "userinfo_url": "https://api.events.ccc.de/congress/2025/me",
         "challenge_instead_of_state": True,
         "functions": {
             "is_admin": lambda json: False,
