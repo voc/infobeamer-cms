@@ -117,7 +117,7 @@ class Notifier:
             "icon_url": url_for("static", filename="event-logo.png", _external=True),
         }
         if asset is not None:
-            data['attachments'] = [
+            data["attachments"] = [
                 {
                     "image_url": asset.thumb,
                     "text": message,
@@ -125,7 +125,7 @@ class Notifier:
                 },
             ]
         else:
-            data['text'] = message
+            data["text"] = message
 
         r = post(
             webhook_url,

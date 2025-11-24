@@ -100,7 +100,9 @@ def to_int(num):
     return (
         num
         if isinstance(num, int)
-        else int(num) if (isinstance(num, str) and num.isdigit()) else None
+        else int(num)
+        if (isinstance(num, str) and num.isdigit())
+        else None
     )
 
 

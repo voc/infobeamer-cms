@@ -100,9 +100,9 @@ DEFAULT_ADMIN_SSO_PROVIDER = CONFIG.get(
     "DEFAULT_ADMIN_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
 )
 
-assert (
-    DEFAULT_SSO_PROVIDER in CONFIG["oauth2_providers"]
-), f"SSO provider {DEFAULT_SSO_PROVIDER} set as default, but not configured."
-assert (
-    DEFAULT_ADMIN_SSO_PROVIDER in CONFIG["oauth2_providers"]
-), f"SSO provider {DEFAULT_ADMIN_SSO_PROVIDER} set as default, but not configured."
+assert DEFAULT_SSO_PROVIDER in CONFIG["oauth2_providers"], (
+    f"SSO provider {DEFAULT_SSO_PROVIDER} set as default, but not configured."
+)
+assert DEFAULT_ADMIN_SSO_PROVIDER in CONFIG["oauth2_providers"], (
+    f"SSO provider {DEFAULT_ADMIN_SSO_PROVIDER} set as default, but not configured."
+)

@@ -73,8 +73,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Install Dependencies
-        run: pip3 install black
-      - name: Run black
-        run: black --check .
+        run: pip3 install ruff
+      - name: Run ruff
+        run: ruff format --check .
         working-directory: .
 
