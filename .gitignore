@@ -2,3 +2,5 @@ env/
 static/asset-*
 settings.toml
 __pycache__
+.direnv/
+.envrc
