@@ -1,5 +1,10 @@
 from conf import CONFIG
-from util.sso.c3hub import check_c3hub_no_limit, get_c3hub_userid, get_c3hub_username
+from util.sso.c3hub import (
+    c3hub_badge_after_confirm,
+    check_c3hub_no_limit,
+    get_c3hub_userid,
+    get_c3hub_username,
+)
 from util.sso.c3voc import (
     check_c3voc_is_admin,
     check_c3voc_no_limit,
@@ -34,6 +39,7 @@ SSO_CONFIG = {
             "no_limit": check_c3hub_no_limit,
             "userid": get_c3hub_userid,
             "username": get_c3hub_username,
+            "after_confirm_action": c3hub_badge_after_confirm,
         },
     },
     "c3voc": {
@@ -100,9 +106,9 @@ DEFAULT_ADMIN_SSO_PROVIDER = CONFIG.get(
     "DEFAULT_ADMIN_SSO_PROVIDER", list(CONFIG["oauth2_providers"].keys())[0]
 )
 
-assert DEFAULT_SSO_PROVIDER in CONFIG["oauth2_providers"], (
-    f"SSO provider {DEFAULT_SSO_PROVIDER} set as default, but not configured."
-)
-assert DEFAULT_ADMIN_SSO_PROVIDER in CONFIG["oauth2_providers"], (
-    f"SSO provider {DEFAULT_ADMIN_SSO_PROVIDER} set as default, but not configured."
-)
+assert (
+    DEFAULT_SSO_PROVIDER in CONFIG["oauth2_providers"]
+), f"SSO provider {DEFAULT_SSO_PROVIDER} set as default, but not configured."
+assert (
+    DEFAULT_ADMIN_SSO_PROVIDER in CONFIG["oauth2_providers"]
+), f"SSO provider {DEFAULT_ADMIN_SSO_PROVIDER} set as default, but not configured."

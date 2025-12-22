@@ -507,6 +507,11 @@ def content_moderate_result(asset_id, result):
     if result == "confirm":
         app.logger.info("Asset {} was confirmed".format(asset["id"]))
         update_asset_userdata(asset, state=State.CONFIRMED, moderated_by=g.username)
+        sso_provider = asset["userdata"]["userid"].split(":")[0]
+        if "after_confirm_action" in SSO_CONFIG[sso_provider]["functions"]:
+            SSO_CONFIG[sso_provider]["functions"]["after_confirm_action"](
+                get_asset(asset_id)
+            )
     else:
         app.logger.info("Asset {} was rejected".format(asset["id"]))
         update_asset_userdata(asset, state=State.REJECTED, moderated_by=g.username)
