@@ -1,3 +1,4 @@
+from flask import current_app as app
 from requests import get as get
 
 from conf import CONFIG
@@ -19,7 +20,7 @@ def c3hub_badge_after_confirm(asset):
     if "badge_claim_url" not in CONFIG["oauth2_providers"]["c3voc"]:
         return
 
-    username = asset.userid[len("c3hub:") :]
+    username = asset.userid[len("c3hub:") :]  # noqa: E203
     try:
         r = get(
             CONFIG["oauth2_providers"]["c3voc"]["badge_claim_url"].format(
