@@ -17,7 +17,7 @@ def check_c3hub_no_limit(userinfo_json):
 
 
 def c3hub_badge_after_confirm(asset):
-    if "badge_claim_url" not in CONFIG["oauth2_providers"]["c3voc"]:
+    if "badge_claim_url" not in CONFIG["oauth2_providers"]["c3hub"]:
         return
 
     username = asset.userid[len("c3hub:") :]  # noqa: E203
