@@ -260,6 +260,7 @@ def oauth2_callback(provider):
         return redirect(url_for("faq", _anchor="signup"))
 
     userid = SSO_CONFIG[provider]["functions"]["userid"](userinfo_json)
+    username = SSO_CONFIG[provider]["functions"]["username"](userinfo_json)
     user_is_admin = SSO_CONFIG[provider]["functions"]["is_admin"](userinfo_json)
     user_without_limits = SSO_CONFIG[provider]["functions"]["no_limit"](userinfo_json)
     REDIS.set(f"admin:{userid}", "1" if user_is_admin else "0")
@@ -270,6 +271,14 @@ def oauth2_callback(provider):
 
     session["oauth2_provider"] = provider
     session["oauth2_userinfo"] = userinfo_json
+
+    # update assets display name if it changed
+    assets = ib.get("asset/list")["assets"]
+    for asset in assets:
+        if asset["userdata"].get("userid") != userid:
+            continue
+        if asset["userdata"].get("username") != username:
+            update_asset_userdata(asset, username=username)
 
     if "redirect_after_login" in session:
         return redirect(session["redirect_after_login"])
