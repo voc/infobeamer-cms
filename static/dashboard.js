@@ -2,6 +2,10 @@
 
 const notyf = new Notyf({duration: 8000})
 
+function capitalizeFirstLetter(val) {
+    return String(val).charAt(0).toUpperCase() + String(val).slice(1)
+}
+
 const store = new Vuex.Store({
   strict: true,
   state: {
@@ -127,7 +131,7 @@ Vue.component('asset-box', {
   template: `
     <div class='asset-box panel panel-default'>
       <div class='panel-heading'>
-        Submission
+        {{capitalizeFirstLetter(asset.filetype)}}
       </div>
       <div class='panel-body'>
         <img class='img-responsive' :src='asset.thumb + "?w=328&h=191&crop=none"'>

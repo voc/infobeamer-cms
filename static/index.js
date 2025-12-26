@@ -4,7 +4,7 @@ Vue.component('asset-preview', {
   template: `
     <div class='asset-live panel panel-default'>
       <div class='panel-heading'>
-        {{asset.filetype}} by {{asset.username}}
+        {{capitalizeFirstLetter(asset.filetype)}} uploaded by {{asset.username}}
       </div>
       <div class='panel-body'>
         <a :href='asset.url' target="_blank">
@@ -20,6 +20,10 @@ Vue.component('asset-preview', {
 
 function unix() {
   return +new Date()/1000
+}
+
+function capitalizeFirstLetter(val) {
+    return String(val).charAt(0).toUpperCase() + String(val).slice(1)
 }
 
 Vue.component('list-last', {
