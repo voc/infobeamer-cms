@@ -11,7 +11,7 @@ def get_github_userid(userinfo_json):
 
 
 def get_github_username(userinfo_json):
-    return "{} (GitHub)".format(userinfo_json["login"])
+    return "{} on GitHub".format(userinfo_json["login"])
 
 
 def check_github_allowed_login(userinfo_json):

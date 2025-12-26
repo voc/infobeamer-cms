@@ -9,7 +9,7 @@ def get_c3hub_userid(userinfo_json):
 
 
 def get_c3hub_username(userinfo_json):
-    return "{} (38C3)".format(userinfo_json["username"])
+    return "{} at 39C3".format(userinfo_json["username"])
 
 
 def check_c3hub_no_limit(userinfo_json):
