@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Infobeamer-CMS - Slideshow</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='event-logo.png') }}">
-    <link rel="stylesheet" href="{{url_for('static', filename='slideshow.css', v=config.VERSION)}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='slideshow.css', v=VERSION)}}">
   </head>
   <body>
     <div id="slideshow">
@@ -19,6 +19,6 @@
     <script type="text/javascript">
         app_startup = {{ APP_STARTUP_TIME }};
     </script>
-    <script type="text/javascript" src="{{url_for('static', filename='slideshow.js', v=config.VERSION)}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='slideshow.js', v=VERSION)}}"></script>
   </body>
 </html>
