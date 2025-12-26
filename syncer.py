@@ -80,7 +80,8 @@ def asset_to_tiles(asset: Asset):
                 "config": {
                     "font_size": 25,
                     "fade_time": FADE_TIME,
-                    "text": "Content by {user} - visit {url} to share your own.".format(
+                    "text": "{type} by {user} - visit {url} to share your own.".format(
+                        type=asset.filetype.capitalize(),
                         user=asset.username,
                         url=CONFIG["DOMAIN"],
                     ),
