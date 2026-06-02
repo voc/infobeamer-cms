@@ -4,3 +4,5 @@ prometheus-client==0.25.0
 redis>=8.0.0,<9.0.0
 requests>=2.34.0,<3.0.0
 rtoml==0.13.0 ; python_version<'3.11'
+gunicorn>=26.0.0,<27.0.0
+gevent>=26.5.0,<27.0.0
