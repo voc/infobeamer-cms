@@ -70,6 +70,18 @@ for copy_key in (
 socket.setdefaulttimeout(3)  # for mqtt
 
 APP_STARTUP_TIME = int(datetime.now().timestamp())
+VERSION = ""
+# try to determine which git revision we're running by probing stuff
+try:
+    with open(join(abspath(dirname(__file__)), ".bundlewrap_git_deploy")) as f:
+        VERSION = f.read().strip()[:8]
+except Exception:
+    try:
+        VERSION = check_output(
+            ["git", "rev-parse", "--short", "HEAD"]
+        ).strip()
+    except Exception:
+        pass
 
 
 class SubmissionsCollector(Collector):
@@ -155,7 +167,7 @@ def layout_context_variables():
         "source_url": CONFIG["FAQ"]["SOURCE"],
         "sso_providers": {},
         "start_time": {},
-        "VERSION": "",
+        "VERSION": VERSION,
     }
 
     start_time = datetime.fromtimestamp(CONFIG["TIME_MIN"], timezone.utc)
@@ -165,18 +177,6 @@ def layout_context_variables():
 
     if not g.userid and start_time > datetime.now(timezone.utc):
         result["start_time"] = start_time.strftime("%F %T")
-
-    # try to determine which git revision we're running by probing stuff
-    try:
-        with open(join(abspath(dirname(__file__)), ".bundlewrap_git_deploy")) as f:
-            result["VERSION"] = f.read().strip()[:8]
-    except Exception:
-        try:
-            result["VERSION"] = check_output(
-                ["git", "rev-parse", "--short", "HEAD"]
-            ).strip()
-        except Exception:
-            pass
 
     return result
 
