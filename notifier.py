@@ -119,7 +119,9 @@ class Notifier:
         if asset is not None:
             data["attachments"] = [
                 {
-                    "image_url": asset.thumb,
+                    "image_url": url_for(
+                        "static", filename=cached_asset_name(asset), _external=True
+                    ),
                     "text": message,
                     "fallback": message,
                 },
